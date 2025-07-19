@@ -29,6 +29,7 @@ typedef enum cwr_token_type {
     cwr_token_slash_type,
     cwr_token_greater_than_type,
     cwr_token_less_than_type,
+    cwr_token_exclamation_mark_type,
     cwr_token_equals_type,
     cwr_token_dot_type,
     cwr_token_asterisk_type,

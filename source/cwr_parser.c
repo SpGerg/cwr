@@ -801,6 +801,9 @@ cwr_expression cwr_parser_parse_binary(cwr_parser* parser) {
                 case cwr_binary_operator_equals_type:
                     type = cwr_binary_operator_equals_type;
                     break;
+                case cwr_binary_operator_negation_type:
+                    type = cwr_binary_operator_not_equals_type;
+                    break;
                 case cwr_binary_operator_greater_than_type:
                     type = cwr_binary_operator_greater_equals_than_type;
                     break;
@@ -859,7 +862,7 @@ cwr_expression cwr_parser_parse_binary(cwr_parser* parser) {
 }
 
 cwr_expression cwr_parser_parse_multiplicative(cwr_parser* parser) {
-    cwr_expression left = cwr_parser_parse_array_element(parser);
+    cwr_expression left = cwr_parser_parse_unary(parser);
     
     while (true) {
         cwr_binary_operator_type type = cwr_binary_operator_type_from_token(cwr_parser_current(parser).type);
@@ -913,8 +916,40 @@ cwr_expression cwr_parser_parse_multiplicative(cwr_parser* parser) {
     return left;
 }
 
+cwr_expression cwr_parser_parse_unary(cwr_parser* parser) {
+    cwr_binary_operator_type type = cwr_binary_operator_type_from_token(cwr_parser_current(parser).type);
+
+    if (type != cwr_binary_operator_none_type) {
+        cwr_parser_skip(parser);
+
+        cwr_expression* child = malloc(sizeof(cwr_expression));
+        if (child == NULL) {
+            cwr_parser_throw_low_memory_error(parser, cwr_parser_current(parser).location);
+            return (cwr_expression) {};
+        }
+
+        cwr_expression value = cwr_parser_parse_array_element(parser);
+        if (parser->is_failed) {
+            free(child);
+            return (cwr_expression) {};
+        }
+
+        *child = value;
+        return (cwr_expression) {
+            .type = cwr_expression_unary_type,
+            .value_type = value.value_type,
+            .unary = (cwr_unary_expression) {
+                .type = type,
+                .child = child
+            }
+        };
+    }
+
+    return cwr_parser_parse_array_element(parser);
+}
+
 cwr_expression cwr_parser_parse_array_element(cwr_parser* parser) {
-    cwr_expression value = cwr_parser_parse_unary(parser);
+    cwr_expression value = cwr_parser_parse_value(parser);
 
     if (cwr_parser_match(parser, cwr_token_left_square_type)) {
         cwr_expression index = cwr_parser_parse_binary(parser);
@@ -950,34 +985,6 @@ cwr_expression cwr_parser_parse_array_element(cwr_parser* parser) {
     }
 
     return value;
-}
-
-cwr_expression cwr_parser_parse_unary(cwr_parser* parser) {
-    if (cwr_parser_match(parser, cwr_token_minus_type)) {
-        cwr_expression* child = malloc(sizeof(cwr_expression));
-        if (child == NULL) {
-            cwr_parser_throw_low_memory_error(parser, cwr_parser_current(parser).location);
-            return (cwr_expression) {};
-        }
-
-        cwr_expression value = cwr_parser_parse_value(parser);
-        if (parser->is_failed) {
-            free(child);
-            return (cwr_expression) {};
-        }
-
-        *child = value;
-        return (cwr_expression) {
-            .type = cwr_expression_unary_type,
-            .value_type = value.value_type,
-            .unary = (cwr_unary_expression) {
-                .type = cwr_binary_operator_minus_type,
-                .child = child
-            }
-        };
-    }
-
-    return cwr_parser_parse_value(parser);
 }
 
 cwr_expression cwr_parser_parse_value(cwr_parser* parser) {

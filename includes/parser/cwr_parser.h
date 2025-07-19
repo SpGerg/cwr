@@ -89,9 +89,9 @@ cwr_expression cwr_parser_parse_binary(cwr_parser* parser);
 
 cwr_expression cwr_parser_parse_multiplicative(cwr_parser* parser);
 
-cwr_expression cwr_parser_parse_array_element(cwr_parser* parser);
-
 cwr_expression cwr_parser_parse_unary(cwr_parser* parser);
+
+cwr_expression cwr_parser_parse_array_element(cwr_parser* parser);
 
 cwr_expression cwr_parser_parse_value(cwr_parser* parser);
 

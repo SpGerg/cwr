@@ -22,6 +22,8 @@ typedef enum cwr_binary_operator_type {
     cwr_binary_operator_minus_type,
     cwr_binary_operator_multiplicative_type,
     cwr_binary_operator_division_type,
+    cwr_binary_operator_negation_type,
+    cwr_binary_operator_not_equals_type,
     cwr_binary_operator_equals_type,
     cwr_binary_operator_greater_than_type,
     cwr_binary_operator_less_than_type,
@@ -274,6 +276,8 @@ static cwr_binary_operator_type cwr_binary_operator_type_from_token(cwr_token_ty
             return cwr_binary_operator_multiplicative_type;
         case cwr_token_slash_type:
             return cwr_binary_operator_division_type;
+        case cwr_token_exclamation_mark_type:
+            return cwr_binary_operator_negation_type;
         case cwr_token_equals_type:
             return cwr_binary_operator_equals_type;
         case cwr_token_greater_than_type:

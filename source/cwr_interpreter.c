@@ -127,7 +127,7 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
                 return condition;
             }
 
-            int result = cwr_value_as_float(condition);
+            int result = cwr_value_as_integer(condition);
             if (result) {
                 cwr_value_runtime_destroy(condition);
                 return cwr_intepreter_evaluate_expr_body(program_context, statement.if_stat.body, root, error);
@@ -177,7 +177,7 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
                         return condition;
                     }
 
-                    int result = cwr_value_as_float(condition);
+                    int result = cwr_value_as_integer(condition);
                     cwr_value_runtime_destroy(condition);
 
                     if (!result) {
@@ -381,9 +381,19 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
                         result = cwr_value_create_float(-cwr_value_as_float(value)); 
                     }
                     else {
-                        result = cwr_value_create_integer(-cwr_value_as_float(value)); 
+                        result = cwr_value_create_integer(-cwr_value_as_integer(value)); 
                     }
-                    
+
+                    break;
+                case cwr_binary_operator_negation_type:
+                    if (result->type == cwr_value_float_type) {
+                        result = cwr_value_create_float(!cwr_value_as_float(value)); 
+                    }
+                    else {
+                        result = cwr_value_create_integer(!cwr_value_as_integer(value)); 
+                    }
+
+                    break;
             }
 
             cwr_value_runtime_destroy(value);
@@ -438,6 +448,9 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
                     break;
                 case cwr_binary_operator_division_type:
                     result = left_number / right_number;
+                    break;
+                case cwr_binary_operator_not_equals_type:
+                    result = left_number != right_number;
                     break;
                 case cwr_binary_operator_equals_type:
                     result = left_number == right_number;

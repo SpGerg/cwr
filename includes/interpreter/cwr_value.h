@@ -24,6 +24,7 @@ typedef struct cwr_value {
 
     union {
         float float_n;
+        int integer_n;
         char character;
         cwr_array_value array;
     };
@@ -82,7 +83,7 @@ static cwr_value* cwr_value_create_integer(int number) {
 
     value->type = cwr_value_integer_type;
     value->references_count = 0;
-    value->float_n = number;
+    value->integer_n = number;
     return value;
 }
 
@@ -196,7 +197,19 @@ static cwr_value* cwr_value_at(cwr_array_value array_value, size_t index) {
 }
 
 static float cwr_value_as_float(cwr_value* value) {
+    if (value->type == cwr_value_integer_type) {
+        return value->integer_n;
+    }
+
     return value->float_n;
+}
+
+static int cwr_value_as_integer(cwr_value* value) {
+    if (value->type == cwr_value_float_type) {
+        return value->float_n;
+    }
+
+    return value->integer_n;
 }
 
 static char cwr_value_as_character(cwr_value* value) {

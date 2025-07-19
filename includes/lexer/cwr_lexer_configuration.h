@@ -4,7 +4,7 @@
 #include <string.h>
 #include <cwr_token.h>
 
-#define CWR_LEXER_CONFIGURATION_TOKENS_COUNT 27
+#define CWR_LEXER_CONFIGURATION_TOKENS_COUNT 28
 
 typedef struct cwr_lexer_token_config {
     cwr_token_type type;
@@ -42,12 +42,13 @@ static cwr_lexer_configuration cwr_lexer_configuration_default() {
     configuration.tokens[17] = cwr_lexer_configuration_create_token(cwr_token_slash_type, "/");
     configuration.tokens[18] = cwr_lexer_configuration_create_token(cwr_token_greater_than_type, ">");
     configuration.tokens[19] = cwr_lexer_configuration_create_token(cwr_token_less_than_type, "<");
-    configuration.tokens[20] = cwr_lexer_configuration_create_token(cwr_token_equals_type, "=");
-    configuration.tokens[21] = cwr_lexer_configuration_create_token(cwr_token_dot_type, ".");
-    configuration.tokens[22] = cwr_lexer_configuration_create_token(cwr_token_asterisk_type, "*");
-    configuration.tokens[23] = cwr_lexer_configuration_create_token(cwr_token_ampersand_type, "&");
-    configuration.tokens[24] = cwr_lexer_configuration_create_token(cwr_token_semicolon_type, ";");
-    configuration.tokens[25] = cwr_lexer_configuration_create_token(cwr_token_colon_type, ":");
+    configuration.tokens[20] = cwr_lexer_configuration_create_token(cwr_token_exclamation_mark_type, "!");
+    configuration.tokens[21] = cwr_lexer_configuration_create_token(cwr_token_equals_type, "=");
+    configuration.tokens[22] = cwr_lexer_configuration_create_token(cwr_token_dot_type, ".");
+    configuration.tokens[23] = cwr_lexer_configuration_create_token(cwr_token_asterisk_type, "*");
+    configuration.tokens[24] = cwr_lexer_configuration_create_token(cwr_token_ampersand_type, "&");
+    configuration.tokens[25] = cwr_lexer_configuration_create_token(cwr_token_semicolon_type, ";");
+    configuration.tokens[26] = cwr_lexer_configuration_create_token(cwr_token_colon_type, ":");
     configuration.tokens[CWR_LEXER_CONFIGURATION_TOKENS_COUNT - 1] = cwr_lexer_configuration_create_token(cwr_token_comma_type, ",");
 
     return configuration;
