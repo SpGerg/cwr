@@ -39,6 +39,8 @@ cwr_token cwr_preprocessor_current(cwr_preprocessor* preprocessor);
 
 bool cwr_preprocessor_is_not_ended(cwr_preprocessor* preprocessor);
 
+void cwr_preprocessor_throw_not_enough_memory_error(cwr_preprocessor* preprocessor, cwr_location location);
+
 void cwr_preprocessor_throw_error(cwr_preprocessor* preprocessor, cwr_preprocessor_error_type type, char* message, cwr_location location);
 
 void cwr_preprocessor_destroy(cwr_preprocessor* preprocessor);
