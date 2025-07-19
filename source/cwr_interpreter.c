@@ -523,7 +523,7 @@ cwr_value* cwr_intepreter_evaluate_expr_body(cwr_program_context program_context
             return result;
         }
 
-        if (statement.type == cwr_statement_if_type || statement.type == cwr_statement_for_loop_type && result != NULL) {
+        if (statement.is_block && result != NULL) {
             return result;
         }
 

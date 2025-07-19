@@ -63,6 +63,8 @@ cwr_statement cwr_parser_parse_declaration(cwr_parser* parser);
 
 cwr_statement cwr_parser_parse_statement(cwr_parser* parser);
 
+cwr_statement cwr_parser_parse_only_statement(cwr_parser* parser);
+
 cwr_assign_statement cwr_parser_parse_assign(cwr_parser* parser);
 
 cwr_var_decl_statement cwr_parser_parse_variable_declaration(cwr_parser* parser, cwr_expression_type_value type);

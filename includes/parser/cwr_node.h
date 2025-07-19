@@ -210,6 +210,7 @@ typedef struct cwr_statement {
     cwr_statement_type type;
     cwr_func_body_expression root;
     cwr_location location;
+    bool is_block;
 
     union {
         cwr_func_decl_statement func_decl;
@@ -281,6 +282,16 @@ static cwr_binary_operator_type cwr_binary_operator_type_from_token(cwr_token_ty
             return cwr_binary_operator_less_than_type;
         default:
             return cwr_binary_operator_none_type;
+    }
+}
+
+static bool cwr_statement_is_block(cwr_statement_type type) {
+    switch (type) {
+        case cwr_statement_for_loop_type:
+        case cwr_statement_if_type:
+            return true;
+        default:
+            return false;
     }
 }
 

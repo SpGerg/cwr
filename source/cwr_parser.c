@@ -195,6 +195,23 @@ cwr_statement cwr_parser_parse_declaration(cwr_parser* parser) {
 }
 
 cwr_statement cwr_parser_parse_statement(cwr_parser* parser) {
+    cwr_statement statement = cwr_parser_parse_only_statement(parser);
+    if (parser->is_failed) {
+        return statement;
+    }
+
+    if (!statement.is_block) {   
+        cwr_parser_except(parser, cwr_token_semicolon_type);
+        if (parser->is_failed) {
+            cwr_statement_destroy(statement);
+            return (cwr_statement) {};
+        }
+    }
+
+    return statement;
+}
+
+cwr_statement cwr_parser_parse_only_statement(cwr_parser* parser) {
     cwr_statement_type current = cwr_parser_get_statement(parser);
     cwr_location location = cwr_parser_current(parser).location;
     cwr_statement statement;
@@ -269,14 +286,7 @@ cwr_statement cwr_parser_parse_statement(cwr_parser* parser) {
         return (cwr_statement) {};
     }
 
-    if (statement.type != cwr_statement_for_loop_type && statement.type != cwr_statement_if_type) {   
-        cwr_parser_except(parser, cwr_token_semicolon_type);
-        if (parser->is_failed) {
-            cwr_statement_destroy(statement);
-            return (cwr_statement) {};
-        }
-    }
-
+    statement.is_block = cwr_statement_is_block(statement.type);
     return statement;
 }
 
@@ -585,7 +595,7 @@ cwr_for_loop_statement cwr_parser_parse_for_loop(cwr_parser* parser) {
             return (cwr_for_loop_statement) {};
         }
 
-        *for_stat.statement = cwr_parser_parse_statement(parser);
+        *for_stat.statement = cwr_parser_parse_only_statement(parser);
         if (parser->is_failed) {
             cwr_statement_destroy_for_loop(for_stat);
             free(for_stat.statement);
