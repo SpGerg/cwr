@@ -87,9 +87,16 @@ int main() {
         printf("Interpreter error");
     }
     else {  
-        cwr_value_instance_destroy(result.value);
+        cwr_value* value = cwr_interpreter_evaluate_entry_point(result, &error);
+        if (error.is_failed) {
+            printf("Entry point error");
+        }
+        else { 
+            cwr_value_instance_destroy(value);
+        }
     }
 
+    cwr_interpreter_result_destroy(result);
     cwr_tokens_list_destroy(tokens_list);
     cwr_parser_result_destroy(statements);
 

@@ -5,7 +5,8 @@
 
 typedef enum cwr_interpreter_error_type {
     cwr_interpreter_error_incorrect_type_type,
-    cwr_interpreter_error_not_enough_memory_type
+    cwr_interpreter_error_not_enough_memory_type,
+    cwr_interpreter_error_entry_point_not_found_type
 } cwr_interpreter_error_type;
 
 typedef struct cwr_interpreter_error {

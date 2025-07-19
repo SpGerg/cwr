@@ -58,6 +58,24 @@ cwr_instance* cwr_scope_get(cwr_scope* scope, cwr_func_body_expression* root, si
     return NULL;
 }
 
+cwr_instance* cwr_scope_get_by_name(cwr_scope* scope, cwr_func_body_expression* root, char* name) {
+    for (int i = scope->capacity - 1;i >= 0;i--) {
+        cwr_instance* instance = &scope->instances[i];
+        if (strcmp(instance->name, name) != 0) {
+            continue;
+        }
+
+        if (!cwr_instance_can_access(*instance, root)) {
+            continue;
+        }
+
+        return instance;
+    }
+
+    // That cant happen because of parser checks
+    return NULL;
+}
+
 void cwr_scope_destroy(cwr_scope* scope) {
     for (size_t i = 0;i < scope->capacity;i++) {
         cwr_instance_destroy(scope->instances[i]);

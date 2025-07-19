@@ -45,74 +45,79 @@ cwr_interpreter* cwr_intepreter_create(cwr_parser_result result) {
     return interpreter;
 }
 
-cwr_interpreter_result cwr_intepreter_interpret(cwr_interpreter* interpreter, cwr_interpreter_error* error) {
-    cwr_program_context context = (cwr_program_context) {
-        .functions = cwr_scope_create(),
-        .variables = cwr_scope_create()
+cwr_value* cwr_interpreter_evaluate_entry_point(cwr_interpreter_result result, cwr_interpreter_error* error) {
+    cwr_instance* entry_point = cwr_scope_get_by_name(result.context.functions, CWR_SCOPE_GLOBAL_SCOPE, CWR_INTERPRETER_ENTRY_POINT_FUNC);
+    if (entry_point == NULL || entry_point->type != cwr_instance_function_type) {
+        cwr_interpreter_error_throw(error,
+             cwr_interpreter_error_entry_point_not_found_type, "Entry point function with'" CWR_INTERPRETER_ENTRY_POINT_FUNC "' name not found", (cwr_location) {0});
+        return NULL;
+    }
+
+    cwr_func_call_context context = (cwr_func_call_context) {
+        .context = result.context,
+        .arguments = NULL,
+        .count = 0,
+        .location = (cwr_location) {0}
     };
+
+    return cwr_intepreter_evaluate_func(entry_point->function, context, error);
+}
+
+cwr_interpreter_result cwr_intepreter_interpret(cwr_interpreter* interpreter, cwr_interpreter_error* error) {
+    cwr_program_context context = cwr_program_context_default();
 
     for (size_t i = 0;i < interpreter->result.nodes_list.count;i++) {
         cwr_statement statement = interpreter->result.nodes_list.statements[i];
 
         switch (statement.type) {
-            case cwr_statement_func_decl_type:
-                if (strcmp(statement.func_decl.name, "main") == 0) {
-                    cwr_value_instance_destroy(cwr_intepreter_evaluate_expr_body(context, statement.func_decl.func_body, &statement.func_decl.func_body, error));
+            case cwr_statement_func_decl_type: {
+                char* name = statement.func_decl.name;
+                cwr_instance instance = (cwr_instance) {
+                    .type = cwr_instance_function_type,
+                    .root = CWR_SCOPE_GLOBAL_SCOPE,
+                    .identifier = statement.func_decl.identifier,
+                    .name = name,
+                    .function = (cwr_function_instance) {
+                        .type = cwr_function_instance_user_type,
+                        .arguments = statement.func_decl.arguments,
+                        .body = statement.func_decl.func_body
+                    }
+                };
+
+                if (strcmp(instance.name, "printf") == 0) {
+                    switch (instance.function.arguments[0].type.value_type) {
+                        case cwr_value_pointer_type:
+                            instance.function.type = cwr_function_instance_bind_type;
+                            instance.function.bind = printf_array_function;
+                            break;
+                        case cwr_value_float_type:
+                            instance.function.type = cwr_function_instance_bind_type;
+                            instance.function.bind = printf_number_function;
+                            break;
+                        case cwr_value_character_type:
+                            instance.function.type = cwr_function_instance_bind_type;
+                            instance.function.bind = printf_character_function;
+                            break;
+                    }
                 }
-                else {
-                    char* name = statement.func_decl.name;
-                    cwr_instance instance = (cwr_instance) {
-                        .type = cwr_instance_function_type,
-                        .root = NULL,
-                        .identifier = statement.func_decl.identifier,
-                        .name = name,
-                        .function = (cwr_function_instance) {
-                            .type = cwr_function_instance_user_type,
-                            .arguments = statement.func_decl.arguments,
-                            .body = statement.func_decl.func_body
-                        }
-                    };
 
-                    if (strcmp(instance.name, "printf") == 0) {
-                        switch (instance.function.arguments[0].type.value_type) {
-                            case cwr_value_pointer_type:
-                                instance.function.type = cwr_function_instance_bind_type;
-                                instance.function.bind = printf_array_function;
-                                break;
-                            case cwr_value_float_type:
-                                instance.function.type = cwr_function_instance_bind_type;
-                                instance.function.bind = printf_number_function;
-                                break;
-                            case cwr_value_character_type:
-                                instance.function.type = cwr_function_instance_bind_type;
-                                instance.function.bind = printf_character_function;
-                                break;
-                        }
-                    }
-
-                    if (!cwr_scope_add(context.functions, instance)) {
-                        cwr_instance_destroy(instance);
-                        cwr_interpreter_error_throw_not_enough_memory(error, statement.location);
-                    }
+                if (!cwr_scope_add(context.functions, instance)) {
+                    cwr_instance_destroy(instance);
+                    cwr_interpreter_error_throw_not_enough_memory(error, statement.location);
                 }
                 
                 break;
+            }
         }
 
         if (error->is_failed) {
-            return (cwr_interpreter_result) {
-                .source = interpreter->result,
-                .value = cwr_value_create_void()
-            };
+            break;
         }
     }
 
-    cwr_scope_destroy(context.functions);
-    cwr_scope_destroy(context.variables);
-
     return (cwr_interpreter_result) {
         .source = interpreter->result,
-        .value = cwr_value_create_void()
+        .context = context
     };
 }
 
@@ -273,51 +278,54 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
 
 cwr_value* cwr_intepreter_evaluate_stat_func_call(cwr_program_context program_context, cwr_func_call_statement statement, cwr_func_body_expression* root, cwr_location location, cwr_interpreter_error* error) {
     cwr_instance* function = cwr_scope_get(program_context.functions, root, statement.identifier);
-    if (function->function.type == cwr_function_instance_bind_type) {
-        cwr_value** arguments = malloc(statement.count * sizeof(cwr_value*));
+    cwr_value** arguments = malloc(statement.count * sizeof(cwr_value*));
 
-        if (arguments == NULL) {
-            cwr_interpreter_error_throw_not_enough_memory(error, location);
-            return cwr_value_create_void();
-        }
-
-        for (size_t i = 0;i < statement.count;i++) {
-            cwr_value* argument = cwr_intepreter_evaluate_expr(program_context, statement.arguments[i], root, error);
-            if (error->is_failed) {
-                return cwr_value_create_void();
-            }
-
-            arguments[i] = argument;
-        }
-
-        cwr_func_call_context context = (cwr_func_call_context) {
-            .context = program_context,
-            .arguments = arguments,
-            .count = statement.count,
-            .location = location
-        };
-
-        return function->function.bind(context);
+    if (arguments == NULL) {
+        cwr_interpreter_error_throw_not_enough_memory(error, location);
+        return cwr_value_create_void();
     }
 
-    // New scope
-    cwr_func_body_expression body = (cwr_func_body_expression) {
-        .root = function->function.body.root,
-        .statements = function->function.body.statements,
-        .count = function->function.body.count
-    };
-    cwr_func_body_expression* body_pointer = &body;
-
     for (size_t i = 0;i < statement.count;i++) {
-        cwr_value* argument_value = cwr_intepreter_evaluate_expr(program_context, statement.arguments[i], root, error);
+        cwr_value* argument = cwr_intepreter_evaluate_expr(program_context, statement.arguments[i], root, error);
         if (error->is_failed) {
             return cwr_value_create_void();
         }
 
-        cwr_argument argument = function->function.arguments[i];
+        arguments[i] = argument;
+    }
+
+    cwr_func_call_context context = (cwr_func_call_context) {
+        .context = program_context,
+        .arguments = arguments,
+        .count = statement.count,
+        .location = location
+    };
+
+    return cwr_intepreter_evaluate_func(function->function, context, error);
+}
+
+cwr_value* cwr_intepreter_evaluate_func(cwr_function_instance instance, cwr_func_call_context context, cwr_interpreter_error* error) {
+    if (instance.type == cwr_function_instance_bind_type) {
+        return instance.bind(context);
+    }
+
+    cwr_program_context program_context = context.context;
+    size_t count = context.count;
+
+    // New scope
+    cwr_func_body_expression body = (cwr_func_body_expression) {
+        .root = instance.body.root,
+        .statements = instance.body.statements,
+        .count = instance.body.count
+    };
+    cwr_func_body_expression* body_pointer = &body;
+
+    for (size_t i = 0;i < count;i++) {
+        cwr_value* value = context.arguments[i];
+        cwr_argument argument = instance.arguments[i];
         char* name = argument.name;
 
-        argument_value->references_count++;
+        value->references_count++;
         cwr_instance variable = (cwr_instance) {
             .type = cwr_instance_variable_type,
             .root = body_pointer,
@@ -325,14 +333,14 @@ cwr_value* cwr_intepreter_evaluate_stat_func_call(cwr_program_context program_co
             .name = name,
             .variable = (cwr_variable_instance) {
                 .type = argument.type,
-                .value = argument_value
+                .value = value
             }
         };
 
         if (!cwr_scope_add(program_context.variables, variable)) {
             cwr_instance_destroy(variable);
             cwr_scope_root_destroy(program_context.variables, body_pointer);
-            cwr_interpreter_error_throw_not_enough_memory(error, location);
+            cwr_interpreter_error_throw_not_enough_memory(error, context.location);
             return cwr_value_create_void();
         }
     }
@@ -546,6 +554,10 @@ cwr_value* cwr_intepreter_evaluate_expr_body(cwr_program_context program_context
     }
 
     return NULL;
+}
+
+void cwr_interpreter_result_destroy(cwr_interpreter_result result) {
+    cwr_program_context_destroy(result.context);
 }
 
 void cwr_intepreter_destroy(cwr_interpreter* interpreter) {
