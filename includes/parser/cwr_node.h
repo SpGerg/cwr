@@ -503,6 +503,10 @@ static void cwr_statement_destroy(cwr_statement statement) {
         case cwr_statement_var_decl_type:
             cwr_var_decl_destroy(statement.var_decl);
             break;
+        case cwr_statement_if_type:
+            cwr_expression_destroy(statement.if_stat.condition);
+            cwr_func_body_expression_destroy(statement.if_stat.body);
+            break;
         case cwr_statement_assign_type:
             cwr_expression_destroy(statement.assign.identifier);
             cwr_expression_destroy(statement.assign.value);

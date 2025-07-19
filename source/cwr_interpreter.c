@@ -133,8 +133,9 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
             }
 
             int result = cwr_value_as_integer(condition);
+            cwr_value_runtime_destroy(condition);
+
             if (result) {
-                cwr_value_runtime_destroy(condition);
                 return cwr_intepreter_evaluate_expr_body(program_context, statement.if_stat.body, root, error);
             }
 
@@ -344,6 +345,8 @@ cwr_value* cwr_intepreter_evaluate_func(cwr_function_instance instance, cwr_func
             return cwr_value_create_void();
         }
     }
+
+    free(context.arguments);
 
     cwr_value* result = cwr_intepreter_evaluate_expr_body(program_context, body, body_pointer, error);
     cwr_scope_root_destroy(program_context.variables, body_pointer);
