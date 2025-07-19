@@ -456,14 +456,24 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
                     break;
             }
 
+            cwr_value* value_result;
+
+            if (left->type == cwr_value_float_type || right->type == cwr_value_float_type) {
+                value_result = cwr_value_create_float(result);
+            }
+            else {
+                value_result = cwr_value_create_integer(result);
+            }
+            
             cwr_value_runtime_destroy(left);
             cwr_value_runtime_destroy(right);
 
-            if (left->type == cwr_value_float_type || right->type == cwr_value_float_type) {
-                return cwr_value_create_float(result);
+            if (value_result == NULL) {
+                cwr_interpreter_error_throw_not_enough_memory(error, expression.location);
+                return NULL;
             }
 
-            return cwr_value_create_integer(result);
+            return value_result;
         }
         case cwr_expression_array_element_type: {
             cwr_value* value = cwr_intepreter_evaluate_expr(program_context, expression.array_element.children[0], root, error);
