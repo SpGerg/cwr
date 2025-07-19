@@ -133,7 +133,7 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
                 return cwr_intepreter_evaluate_expr_body(program_context, statement.if_stat.body, root, error);
             }
 
-            break;
+            return NULL;
         }
         case cwr_statement_for_loop_type: {
             cwr_func_body_expression body = (cwr_func_body_expression) {
@@ -205,7 +205,7 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
             }
             
             cwr_scope_root_destroy(program_context.variables, body_pointer);
-            return cwr_value_create_void();
+            return NULL;
         }
         case cwr_statement_var_decl_type: {
             char* name = statement.var_decl.name;
@@ -233,7 +233,7 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
                 return cwr_value_create_void();
             }
 
-            break;
+            return NULL;
         }
         case cwr_statement_assign_type: {
             cwr_value* value = cwr_intepreter_evaluate_expr(program_context, statement.assign.value, root, error);
@@ -262,7 +262,7 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
             value->references_count = identifier->references_count;
             cwr_value_set(identifier, value);
             free(value);
-            break;
+            return identifier;
         }
         case cwr_statement_return_type:
             return cwr_intepreter_evaluate_expr(program_context, statement.ret.value, root, error);
@@ -513,7 +513,7 @@ cwr_value* cwr_intepreter_evaluate_expr_body(cwr_program_context program_context
             return result;
         }
 
-        if (statement.type == cwr_statement_if_type && result != NULL) {
+        if (statement.type == cwr_statement_if_type || statement.type == cwr_statement_for_loop_type && result != NULL) {
             return result;
         }
 

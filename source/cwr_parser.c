@@ -519,151 +519,97 @@ cwr_for_loop_statement cwr_parser_parse_for_loop(cwr_parser* parser) {
     cwr_parser_except(parser, cwr_token_left_par_type);
     CWR_PARSER_FAILED_AND_RETURN(parser, cwr_for_loop_statement);
 
-    cwr_var_decl_statement var_decl;
-    bool with_variable = false;
+    cwr_for_loop_statement for_stat = (cwr_for_loop_statement) {
+        .with_variable = false,
+        .with_condition = false,
+        .with_statement = false,
+        .with_body = false
+    };
 
     if (!cwr_parser_match(parser, cwr_token_semicolon_type)) {
         cwr_expression_type_value type = cwr_parser_parse_type(parser);
         CWR_PARSER_FAILED_AND_RETURN(parser, cwr_for_loop_statement);
 
-        var_decl = cwr_parser_parse_variable_declaration(parser, type);
+        for_stat.variable = cwr_parser_parse_variable_declaration(parser, type);
         if (parser->is_failed) {
             cwr_expression_type_value_destroy(type);
             return (cwr_for_loop_statement) {};
         }
 
+        for_stat.with_variable = true;
+
         cwr_parser_except(parser, cwr_token_semicolon_type);
         if (parser->is_failed) {
-            cwr_var_decl_destroy(var_decl);
+            cwr_statement_destroy_for_loop(for_stat);
             return (cwr_for_loop_statement) {};
         }
 
         cwr_parser_variable variable = (cwr_parser_variable) {
-            .identifier = var_decl.identifier,
-            .name = var_decl.name,
-            .type = var_decl.value_type
+            .identifier = for_stat.variable.identifier,
+            .name = for_stat.variable.name,
+            .type = for_stat.variable.value_type
         };
 
         if (!cwr_parser_add_variable(parser, variable)) {
-            cwr_var_decl_destroy(var_decl);
+            cwr_statement_destroy_for_loop(for_stat);
             cwr_parser_throw_low_memory_error(parser, cwr_parser_current(parser).location);
             return (cwr_for_loop_statement) {};
         }
-
-        with_variable = true;
     }
 
-    cwr_expression condition;
-    bool with_condition;
-
     if (!cwr_parser_match(parser, cwr_token_semicolon_type)) {
-        condition = cwr_parser_parse_binary(parser);
+        for_stat.condition = cwr_parser_parse_binary(parser);
         if (parser->is_failed) {
-            if (with_variable) {
-                cwr_var_decl_destroy(var_decl);
-            }
-
+            cwr_statement_destroy_for_loop(for_stat);
             return (cwr_for_loop_statement) {};
         }
 
-        if (condition.value_type.value_type != cwr_value_integer_type) {
-            if (with_variable) {
-                cwr_var_decl_destroy(var_decl);
-            }
+        for_stat.with_condition = true;
 
-            cwr_expression_destroy(condition);
+        if (for_stat.condition.value_type.value_type != cwr_value_integer_type) {
+            cwr_statement_destroy_for_loop(for_stat);
             return (cwr_for_loop_statement) {};
         }
 
         cwr_parser_except(parser, cwr_token_semicolon_type);
         if (parser->is_failed) {
-            if (with_variable) {
-                cwr_var_decl_destroy(var_decl);
-            }
-
-            cwr_expression_destroy(condition);
+            cwr_statement_destroy_for_loop(for_stat);
             return (cwr_for_loop_statement) {};
         }
-
-        with_condition = true;
     }
 
-    cwr_statement* statement;
-    bool with_statement = false;
-
     if (!cwr_parser_match(parser, cwr_token_right_par_type)) {
-        statement = malloc(sizeof(cwr_statement));
-        if (statement == NULL) {
-            if (with_variable) {
-                cwr_var_decl_destroy(var_decl);
-            }
-
-            if (with_condition) {
-                cwr_expression_destroy(condition);
-            }
-
+        for_stat.statement = malloc(sizeof(cwr_statement));
+        if (for_stat.statement == NULL) {
+            cwr_statement_destroy_for_loop(for_stat);
             return (cwr_for_loop_statement) {};
         }
 
-        *statement = cwr_parser_parse_statement(parser);
+        *for_stat.statement = cwr_parser_parse_statement(parser);
         if (parser->is_failed) {
-            if (with_variable) {
-                cwr_var_decl_destroy(var_decl);
-            }
-
-            if (with_condition) {
-                cwr_expression_destroy(condition);
-            }
-
-            free(statement);
+            cwr_statement_destroy_for_loop(for_stat);
+            free(for_stat.statement);
             return (cwr_for_loop_statement) {};
         }
+
+        for_stat.with_statement = true;
 
         cwr_parser_except(parser, cwr_token_right_par_type);
         if (parser->is_failed) {
-            if (with_variable) {
-                cwr_var_decl_destroy(var_decl);
-            }
-
-            if (with_condition) {
-                cwr_expression_destroy(condition);
-            }
-
-            cwr_statement_destroy(*statement);
-            free(statement);
+            cwr_statement_destroy_for_loop(for_stat);
             return (cwr_for_loop_statement) {};
         }
-
-        with_statement = true;
     }
 
     cwr_func_body_expression body = cwr_parser_parse_function_body(parser);
     if (parser->is_failed) {
-        if (with_variable) {
-            cwr_var_decl_destroy(var_decl);
-        }
-
-        if (with_condition) {
-            cwr_expression_destroy(condition);
-        }
-
-        if (with_statement) {
-            cwr_statement_destroy(*statement);
-            free(statement);
-        }
-
+        cwr_statement_destroy_for_loop(for_stat);
         return (cwr_for_loop_statement) {};
     }
 
-    return (cwr_for_loop_statement) {
-        .variable = var_decl,
-        .with_variable = with_variable,
-        .condition = condition,
-        .with_condition = with_condition,
-        .statement = statement,
-        .with_statement = with_statement,
-        .body = body
-    };
+    for_stat.with_body = true;
+    for_stat.body = body;
+    return for_stat;
 }
 
 cwr_func_call_statement cwr_parser_parse_function_call(cwr_parser* parser) {

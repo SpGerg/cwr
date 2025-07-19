@@ -192,6 +192,7 @@ typedef struct cwr_for_loop_statement {
     cwr_statement* statement;
     bool with_statement;
     cwr_func_body_expression body;
+    bool with_body;
 } cwr_for_loop_statement;
 
 typedef struct cwr_if_statement {
@@ -432,6 +433,25 @@ static void cwr_func_decl_destroy(cwr_func_decl_statement func_decl) {
     }
 }
 
+static void cwr_statement_destroy_for_loop(cwr_for_loop_statement statement) {
+    if (statement.with_variable) {
+        cwr_var_decl_destroy(statement.variable);
+    }
+
+    if (statement.with_condition) {
+        cwr_expression_destroy(statement.condition);
+    }
+
+    if (statement.with_statement) {
+        cwr_statement_destroy(*statement.statement);
+        free(statement.statement);
+    }
+    
+    if (statement.with_body) {
+        cwr_expression_destroy_body(statement.body);
+    }
+}
+
 static void cwr_statement_destroy(cwr_statement statement) {
     switch (statement.type) {
         case cwr_statement_func_decl_type:
@@ -456,20 +476,7 @@ static void cwr_statement_destroy(cwr_statement statement) {
             cwr_statement_destroy_func_call(statement.func_call);
             break;
         case cwr_statement_for_loop_type:
-            if (statement.for_loop.with_variable) {
-                cwr_var_decl_destroy(statement.for_loop.variable);
-            }
-
-            if (statement.for_loop.with_condition) {
-                cwr_expression_destroy(statement.for_loop.condition);
-            }
-
-            if (statement.for_loop.with_statement) {
-                cwr_statement_destroy(*statement.for_loop.statement);
-                free(statement.for_loop.statement);
-            }
-
-            cwr_func_body_expression_destroy(statement.for_loop.body);
+            cwr_statement_destroy_for_loop(statement.for_loop);
             break;
         case cwr_statement_return_type:
             cwr_expression_destroy(statement.ret.value);
