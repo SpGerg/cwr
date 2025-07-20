@@ -218,7 +218,7 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
             cwr_value* value = cwr_intepreter_evaluate_expr(program_context, statement.var_decl.value, root, error);
 
             if (error->is_failed) {
-                return cwr_value_create_void();
+                return NULL;
             }
 
             cwr_value_add_reference(value);
@@ -244,10 +244,10 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
         case cwr_statement_assign_type: {
             cwr_value* value = cwr_intepreter_evaluate_expr(program_context, statement.assign.value, root, error);
             if (error->is_failed) {
-                return cwr_value_create_void();
+                return NULL;
             }
 
-            value->references_count++;
+            cwr_value_add_reference(value);
             if (!statement.assign.is_dereference) {
                 cwr_instance* instance = cwr_scope_get(program_context.variables, root, statement.assign.identifier.var.identifier);
                 cwr_value* variable_value = instance->variable.value;
@@ -260,11 +260,12 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
             cwr_value* identifier = cwr_intepreter_evaluate_expr(program_context, statement.assign.identifier, root, error);
             if (error->is_failed) {
                 cwr_value_runtime_destroy(value);
-                return cwr_value_create_void();
+                return NULL;
             }
 
-            value->references_count = identifier->references_count;
+            value->references_count += --identifier->references_count;
             cwr_value_set(identifier, value);
+            free(value);
             return identifier;
         }
         case cwr_statement_return_type:
@@ -304,7 +305,7 @@ cwr_value* cwr_intepreter_evaluate_stat_func_call(cwr_program_context program_co
     cwr_func_call_context context = (cwr_func_call_context) {
         .context = program_context,
         .arguments = arguments,
-        .count = count,
+        .count = 0,
         .location = location
     };
 
@@ -315,7 +316,8 @@ cwr_value* cwr_intepreter_evaluate_stat_func_call(cwr_program_context program_co
             return NULL;
         }
 
-        arguments[count++] = argument;
+        arguments[count] = argument;
+        context.count = ++count;
     }
 
     return cwr_intepreter_evaluate_func(function->function, context, error);
@@ -391,6 +393,7 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
                         .is_reference = false,
                         .characters = characters
                     };
+
                     return cwr_value_create_array(array);
                 }
             }

@@ -96,7 +96,6 @@ void cwr_scope_root_destroy(cwr_scope* scope, cwr_func_body_expression* root) {
             cwr_value_remove_reference(instance.variable.value);
         }
 
-        cwr_instance_destroy(instance);
         scope->capacity--;
     }
 }

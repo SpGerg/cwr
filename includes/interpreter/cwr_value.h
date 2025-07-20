@@ -152,22 +152,22 @@ static cwr_value* cwr_array_value_dereference(cwr_array_value value) {
     if (target == NULL) {
         return NULL;
     }
-
+    
+    target->type = value.type;
     target->references_count = 0;
     switch (value.type) {
         case cwr_value_character_type:
-            target->type = cwr_value_character_type;
             target->character = *value.characters;
-            return target;
+            break;
         case cwr_value_integer_type:
-            target->type = cwr_value_integer_type;
             target->integer_n = *value.integers;
-            return target;
+            break;
         case cwr_value_float_type:
-            target->type = cwr_value_float_type;
             target->float_n = *value.floats;
-            return target;
+            break;
     }
+
+    return target;
 }
 
 static cwr_value* cwr_value_dereference(cwr_value* value) {
@@ -246,6 +246,10 @@ static cwr_array_value cwr_value_as_array(cwr_value value) {
 static void cwr_array_value_destroy(cwr_array_value array_value) {
     if (array_value.is_reference) {
         free(array_value.values);
+        return;
+    }
+
+    if (array_value.capacity <= 0) {
         return;
     }
 

@@ -72,7 +72,7 @@ static bool cwr_instance_can_access(cwr_instance instance, cwr_func_body_express
 static void cwr_func_call_context_destroy(cwr_func_call_context context) {
     cwr_value** arguments = context.arguments;
 
-    if (arguments != NULL) {
+    if (context.count > 0) {
         for (size_t i = 0;i < context.count;i++) {
             cwr_value_runtime_destroy(arguments[i]);
         }
