@@ -263,7 +263,6 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
                 return NULL;
             }
 
-            value->references_count += --identifier->references_count;
             cwr_value_set(identifier, value);
             free(value);
             return identifier;
