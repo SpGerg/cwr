@@ -236,7 +236,7 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
             if (!cwr_scope_add(program_context.variables, variable)) {
                 cwr_instance_destroy(variable);
                 cwr_interpreter_error_throw_not_enough_memory(error, statement.location);
-                return cwr_value_create_void();
+                return value;
             }
 
             return NULL;
@@ -290,6 +290,7 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
             return ret_value;
     }
 
+    cwr_interpreter_error_throw(error, cwr_parser_error_unknown_statement_type, "Unknown statement", statement.location);
     return NULL;
 }
 
@@ -395,7 +396,13 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
                         .characters = characters
                     };
 
-                    return cwr_value_create_array(array);
+                    cwr_value* characters_value = cwr_value_create_array(array);
+                    if (characters_value == NULL) {
+                        free(characters);
+                        cwr_interpreter_error_throw_not_enough_memory(error, expression.location);
+                    }
+
+                    return characters_value;
                 }
             }
         }
@@ -454,7 +461,12 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
 
             return integer_n;
         case cwr_expression_character_type:
-            return cwr_value_create_character(expression.character.value);
+            cwr_value* character = cwr_value_create_character(expression.character.value);
+            if (character == NULL) {
+                cwr_interpreter_error_throw_not_enough_memory(error, expression.location);
+            }
+
+            return character;
         case cwr_expression_var_type:
             return cwr_scope_get(program_context.variables, root, expression.var.identifier)->variable.value;
         case cwr_expression_func_call_type:
@@ -467,6 +479,7 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
 
             cwr_value* right = cwr_intepreter_evaluate_expr(program_context, expression.binary.children[1], root, error);
             if (error->is_failed) {
+                cwr_value_runtime_destroy(left);
                 return NULL;
             }
 
@@ -484,6 +497,11 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
                     result = left_number * right_number;
                     break;
                 case cwr_binary_operator_division_type:
+                    if (right_number == 0) {
+                        cwr_interpreter_error_throw(error, cwr_interpreter_error_division_by_zero_type, "Division by zero", expression.location);
+                        break;
+                    }
+
                     result = left_number / right_number;
                     break;
                 case cwr_binary_operator_not_equals_type:
@@ -506,6 +524,12 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
                     break;
             }
 
+            if (error->is_failed) {
+                cwr_value_runtime_destroy(left);
+                cwr_value_runtime_destroy(right);
+                return NULL;
+            }
+
             cwr_value* value_result;
 
             if (left->type == cwr_value_float_type || right->type == cwr_value_float_type) {
@@ -520,7 +544,6 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
 
             if (value_result == NULL) {
                 cwr_interpreter_error_throw_not_enough_memory(error, expression.location);
-                return NULL;
             }
 
             return value_result;
@@ -559,7 +582,8 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
         }
     }
 
-    return cwr_value_create_void();
+    cwr_interpreter_error_throw(error, cwr_interpreter_error_unknown_expression_type, "Unknown expression", expression.location);
+    return NULL;
 }
 
 cwr_value* cwr_intepreter_evaluate_expr_body(cwr_program_context program_context, cwr_func_body_expression expression, cwr_func_body_expression* root, cwr_interpreter_error* error) {
