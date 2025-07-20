@@ -1,20 +1,9 @@
 #include <stdio.h>
 
-int result(int argument) {
-    if argument == 2 {
-        if argument + 1 > 2 {
-            return 4;
-        }
-
-        return 3;
-    }
-
-    return 1;
-}
-
 int main() {
-    int test = 0;
-    printf(result(1));
+    char* message = "Hello, world";
+    *message = "Other world";
+    printf(*message);
 
     return 0;
 }

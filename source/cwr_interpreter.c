@@ -221,7 +221,7 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
                 return cwr_value_create_void();
             }
 
-            value->references_count++;
+            cwr_value_add_reference(value);
             cwr_instance variable = (cwr_instance) {
                 .type = cwr_instance_variable_type,
                 .root = root,
@@ -252,9 +252,7 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
                 cwr_instance* instance = cwr_scope_get(program_context.variables, root, statement.assign.identifier.var.identifier);
                 cwr_value* variable_value = instance->variable.value;
 
-                variable_value->references_count--;
-                cwr_value_runtime_destroy(variable_value);
-
+                cwr_value_remove_reference(variable_value);
                 instance->variable.value = value;
                 return value;
             }
@@ -267,11 +265,27 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
 
             value->references_count = identifier->references_count;
             cwr_value_set(identifier, value);
-            free(value);
             return identifier;
         }
         case cwr_statement_return_type:
-            return cwr_intepreter_evaluate_expr(program_context, statement.ret.value, root, error);
+            cwr_value* ret_value = cwr_intepreter_evaluate_expr(program_context, statement.ret.value, root, error);
+            if (error->is_failed) {
+                return ret_value;
+            }
+
+            if (statement.ret.with_body) {
+                cwr_value* body_result = cwr_intepreter_evaluate_expr_body(program_context, statement.ret.body, root, error);
+                if (error->is_failed) {
+                    cwr_value_runtime_destroy(ret_value);
+                    return ret_value;
+                }
+
+                if (body_result != NULL) {
+                    cwr_value_runtime_destroy(body_result);
+                }
+            }
+
+            return ret_value;
     }
 
     return NULL;
@@ -283,24 +297,26 @@ cwr_value* cwr_intepreter_evaluate_stat_func_call(cwr_program_context program_co
 
     if (arguments == NULL) {
         cwr_interpreter_error_throw_not_enough_memory(error, location);
-        return cwr_value_create_void();
+        return NULL;
     }
+
+    size_t count = 0;
+    cwr_func_call_context context = (cwr_func_call_context) {
+        .context = program_context,
+        .arguments = arguments,
+        .count = count,
+        .location = location
+    };
 
     for (size_t i = 0;i < statement.count;i++) {
         cwr_value* argument = cwr_intepreter_evaluate_expr(program_context, statement.arguments[i], root, error);
         if (error->is_failed) {
-            return cwr_value_create_void();
+            cwr_func_call_context_destroy(context);
+            return NULL;
         }
 
-        arguments[i] = argument;
+        arguments[count++] = argument;
     }
-
-    cwr_func_call_context context = (cwr_func_call_context) {
-        .context = program_context,
-        .arguments = arguments,
-        .count = statement.count,
-        .location = location
-    };
 
     return cwr_intepreter_evaluate_func(function->function, context, error);
 }
@@ -326,7 +342,7 @@ cwr_value* cwr_intepreter_evaluate_func(cwr_function_instance instance, cwr_func
         cwr_argument argument = instance.arguments[i];
         char* name = argument.name;
 
-        value->references_count++;
+        cwr_value_add_reference(value);
         cwr_instance variable = (cwr_instance) {
             .type = cwr_instance_variable_type,
             .root = body_pointer,
@@ -404,6 +420,12 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
                         result = cwr_value_create_integer(!cwr_value_as_integer(value)); 
                     }
 
+                    break;
+                case cwr_binary_operator_reference_type:
+                    result = cwr_value_reference(value);
+                    break;
+                case cwr_binary_operator_dereference_type:
+                    result = cwr_value_dereference(value);
                     break;
             }
 
@@ -511,29 +533,26 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
                 return NULL;
             }
 
-            cwr_value* element = cwr_value_at(value->array, cwr_value_as_float(index));
+            int target = cwr_value_as_float(index);
+            if (target < 0) {
+                cwr_value_runtime_destroy(value);
+                cwr_value_runtime_destroy(index);
+                cwr_interpreter_error_throw(error, cwr_interpreter_error_negative_index_type, "Index must be non-negative", expression.location);
+                return NULL;
+            }
+
+            if (target > value->array.capacity - 1) {
+                cwr_value_runtime_destroy(value);
+                cwr_value_runtime_destroy(index);
+                cwr_interpreter_error_throw(error, cwr_interpreter_error_index_out_of_range_type, "Index out of range", expression.location);
+                return NULL;
+            }
+
+            cwr_value* element = cwr_value_at(value->array, target);
             cwr_value_runtime_destroy(value);
             cwr_value_runtime_destroy(index);
             return element;
         }
-        case cwr_expression_dereference_type:
-            cwr_value* target = cwr_intepreter_evaluate_expr(program_context, *expression.dereference.value, root, error);
-            if (error->is_failed) {
-                return target;
-            }
-
-            cwr_value* derefenced = cwr_value_dereference(target);
-            cwr_value_runtime_destroy(target);
-            return derefenced;
-        case cwr_expression_reference_type:
-            cwr_value* reference_target = cwr_intepreter_evaluate_expr(program_context, *expression.reference.value, root, error);
-            if (error->is_failed) {
-                return reference_target;
-            }
-
-            cwr_value* referenced = cwr_value_reference(reference_target);
-            cwr_value_runtime_destroy(reference_target);
-            return referenced;
     }
 
     return cwr_value_create_void();

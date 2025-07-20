@@ -93,7 +93,7 @@ void cwr_scope_root_destroy(cwr_scope* scope, cwr_func_body_expression* root) {
         }
 
         if (instance.type == cwr_instance_variable_type) {
-            instance.variable.value->references_count--;
+            cwr_value_remove_reference(instance.variable.value);
         }
 
         cwr_instance_destroy(instance);

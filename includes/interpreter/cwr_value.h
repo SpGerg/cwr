@@ -12,7 +12,8 @@ typedef struct cwr_array_value {
     bool is_reference;
 
     union {
-        double* numbers;
+        float* floats;
+        int* integers;
         char* characters;
         cwr_value** values;
     };
@@ -20,7 +21,7 @@ typedef struct cwr_array_value {
 
 typedef struct cwr_value {
     cwr_value_type type;
-    size_t references_count;
+    int references_count;
 
     union {
         float float_n;
@@ -29,6 +30,9 @@ typedef struct cwr_value {
         cwr_array_value array;
     };
 } cwr_value;
+
+static void cwr_value_instance_destroy(cwr_value* value);
+static void cwr_array_value_destroy(cwr_array_value array_value);
 
 static cwr_array_value cwr_value_create_array_copy(cwr_array_value value) {
     switch (value.type) {
@@ -111,15 +115,28 @@ static cwr_value* cwr_value_create_array(cwr_array_value array_value) {
     return value;
 }
 
+static void cwr_value_add_reference(cwr_value* value)  {
+    value->references_count++;
+}
+
+static void cwr_value_remove_reference(cwr_value* value) {
+    if (--value->references_count <= 0) {
+        cwr_value_instance_destroy(value);
+    }
+}
+
 static void cwr_value_set(cwr_value* target, cwr_value* value) {
     switch (target->type) {
         case cwr_value_array_type:
+            cwr_array_value_destroy(target->array);
             target->array = value->array;
             break;
         case cwr_value_character_type:
             target->character = value->character;
             break; 
         case cwr_value_integer_type:
+            target->integer_n = value->integer_n;
+            break;
         case cwr_value_float_type:
             target->float_n = value->float_n;
             break;
@@ -144,11 +161,11 @@ static cwr_value* cwr_array_value_dereference(cwr_array_value value) {
             return target;
         case cwr_value_integer_type:
             target->type = cwr_value_integer_type;
-            target->character = *value.numbers;
+            target->integer_n = *value.integers;
             return target;
         case cwr_value_float_type:
             target->type = cwr_value_float_type;
-            target->character = *value.numbers;
+            target->float_n = *value.floats;
             return target;
     }
 }
@@ -188,10 +205,16 @@ static cwr_value* cwr_value_at(cwr_array_value array_value, size_t index) {
     }
 
     target->references_count = 0;
+    target->type = array_value.type;
     switch (array_value.type) {
         case cwr_value_character_type:
-            target->type = cwr_value_character_type;
             target->character = array_value.characters[index];
+            return target;
+        case cwr_value_float_type:
+            target->float_n = array_value.floats[index];
+            return target;
+        case cwr_value_integer_type:
+            target->integer_n = array_value.integers[index];
             return target;
     }
 }
@@ -230,9 +253,11 @@ static void cwr_array_value_destroy(cwr_array_value array_value) {
         case cwr_value_character_type:
             free(array_value.characters);
             break;
-        case cwr_value_integer_type:
         case cwr_value_float_type:
-            free(array_value.numbers);
+            free(array_value.floats);
+            break;
+        case cwr_value_integer_type:
+            free(array_value.integers);
             break;
     }
 }

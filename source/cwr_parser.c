@@ -292,7 +292,7 @@ cwr_statement cwr_parser_parse_only_statement(cwr_parser* parser) {
 
 cwr_assign_statement cwr_parser_parse_assign(cwr_parser* parser) {
     bool is_dereference = cwr_parser_current(parser).type == cwr_token_asterisk_type;
-    cwr_expression identifier = cwr_parser_parse_value(parser);
+    cwr_expression identifier = cwr_parser_parse_unary(parser, is_dereference);
     CWR_PARSER_FAILED_AND_RETURN(parser, cwr_assign_statement);
 
     cwr_parser_except(parser, cwr_token_equals_type);
@@ -690,7 +690,7 @@ cwr_return_statement cwr_parser_parse_return(cwr_parser* parser, cwr_expression_
     CWR_PARSER_FAILED_AND_RETURN(parser, cwr_return_statement);
 
     cwr_func_body_expression body;
-    bool with_body = cwr_parser_match(parser, cwr_token_left_curly_type);
+    bool with_body = cwr_parser_match(parser, cwr_token_colon_type);
 
     if (with_body) {
         body = cwr_parser_parse_function_body(parser);
@@ -862,7 +862,7 @@ cwr_expression cwr_parser_parse_binary(cwr_parser* parser) {
 }
 
 cwr_expression cwr_parser_parse_multiplicative(cwr_parser* parser) {
-    cwr_expression left = cwr_parser_parse_unary(parser);
+    cwr_expression left = cwr_parser_parse_unary(parser, false);
     
     while (true) {
         cwr_binary_operator_type type = cwr_binary_operator_type_from_token(cwr_parser_current(parser).type);
@@ -916,7 +916,7 @@ cwr_expression cwr_parser_parse_multiplicative(cwr_parser* parser) {
     return left;
 }
 
-cwr_expression cwr_parser_parse_unary(cwr_parser* parser) {
+cwr_expression cwr_parser_parse_unary(cwr_parser* parser, bool only_value) {
     cwr_binary_operator_type type = cwr_binary_operator_type_from_token(cwr_parser_current(parser).type);
 
     if (type != cwr_binary_operator_none_type) {
@@ -928,16 +928,35 @@ cwr_expression cwr_parser_parse_unary(cwr_parser* parser) {
             return (cwr_expression) {};
         }
 
-        cwr_expression value = cwr_parser_parse_array_element(parser);
+        cwr_expression value = cwr_parser_parse_unary(parser, only_value);
         if (parser->is_failed) {
             free(child);
             return (cwr_expression) {};
         }
 
+        cwr_expression_type_value type_value = value.value_type;
+        if (type == cwr_binary_operator_multiplicative_type) {
+            if (only_value) {
+                free(child);
+                return value;
+            }
+
+            type = cwr_binary_operator_dereference_type;
+            type_value = *type_value.target_type;
+        }
+        else if (type == cwr_binary_operator_dereference_type) {
+            type_value = (cwr_expression_type_value) {
+                .value_type = cwr_value_pointer_type,
+                .identifier = -1,
+                .name = NULL,
+                .target_type = &type_value,
+            }; 
+        }
+
         *child = value;
         return (cwr_expression) {
             .type = cwr_expression_unary_type,
-            .value_type = value.value_type,
+            .value_type = type_value,
             .unary = (cwr_unary_expression) {
                 .type = type,
                 .child = child
@@ -1048,53 +1067,6 @@ cwr_expression cwr_parser_parse_value(cwr_parser* parser) {
                 }
             };
         }
-        case cwr_token_asterisk_type:
-            cwr_expression* target = malloc(sizeof(cwr_expression));
-            if (target == NULL) {
-                cwr_parser_throw_low_memory_error(parser, current.location);
-                return (cwr_expression) {};
-            }
-
-            cwr_expression value = cwr_parser_parse_binary(parser);
-            if (parser->is_failed) {
-                free(target);
-                return value;
-            }
-
-            *target = value;
-            return (cwr_expression) {
-                .type = cwr_expression_dereference_type,
-                .value_type = *value.value_type.target_type,
-                .dereference = (cwr_dereference_expression) {
-                    .value = target
-                }
-            };
-        case cwr_token_ampersand_type:
-            cwr_expression* reference_target = malloc(sizeof(cwr_expression));
-            if (reference_target == NULL) {
-                cwr_parser_throw_low_memory_error(parser, current.location);
-                return (cwr_expression) {};
-            }
-
-            cwr_expression reference_value = cwr_parser_parse_binary(parser);
-            if (parser->is_failed) {
-                free(reference_target);
-                return reference_value;
-            }
-
-            *reference_target = reference_value;
-            return (cwr_expression) {
-                .type = cwr_expression_reference_type,
-                .value_type = (cwr_expression_type_value) {
-                    .value_type = cwr_value_pointer_type,
-                    .identifier = -1,
-                    .name = NULL,
-                    .target_type = &reference_target->value_type
-                },
-                .reference = (cwr_reference_expression) {
-                    .value = reference_target
-                }
-            };
         case cwr_token_string_type: {
             size_t count = strlen(current.value) + 1;
             cwr_expression* content = malloc(count * sizeof(cwr_expression) + sizeof(cwr_expression));

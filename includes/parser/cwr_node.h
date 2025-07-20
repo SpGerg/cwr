@@ -25,6 +25,8 @@ typedef enum cwr_binary_operator_type {
     cwr_binary_operator_negation_type,
     cwr_binary_operator_not_equals_type,
     cwr_binary_operator_equals_type,
+    cwr_binary_operator_reference_type,
+    cwr_binary_operator_dereference_type,
     cwr_binary_operator_greater_than_type,
     cwr_binary_operator_less_than_type,
     cwr_binary_operator_greater_equals_than_type,
@@ -43,14 +45,11 @@ typedef enum cwr_statement_type {
 } cwr_statement_type;
 
 typedef enum cwr_expression_type {
-    cwr_expression_type_type,
     cwr_expression_binary_type,
     cwr_expression_func_call_type,
     cwr_expression_array_type,
     cwr_expression_array_element_type,
     cwr_expression_var_type,
-    cwr_expression_dereference_type,
-    cwr_expression_reference_type,
     cwr_expression_character_type,
     cwr_expression_unary_type,
     cwr_expression_float_type,
@@ -119,14 +118,6 @@ typedef struct cwr_func_decl_statement {
     cwr_expression_type_value return_type;
 } cwr_func_decl_statement;
 
-typedef struct cwr_dereference_expression {
-    cwr_expression* value;
-} cwr_dereference_expression;
-
-typedef struct cwr_reference_expression {
-    cwr_expression* value;
-} cwr_reference_expression;
-
 typedef struct cwr_var_expression {
     int identifier;
     char* name;
@@ -168,8 +159,6 @@ typedef struct cwr_expression {
         cwr_character_expression character;
         cwr_array_expression array;
         cwr_array_element_expression array_element;
-        cwr_dereference_expression dereference;
-        cwr_reference_expression reference;
     };
 } cwr_expression;
 
@@ -231,7 +220,15 @@ typedef struct cwr_nodes_list {
 } cwr_nodes_list;
 
 static bool cwr_expression_type_value_equals(cwr_expression_type_value type, cwr_expression_type_value target) {
-    if (type.value_type == cwr_value_array_type || type.value_type == cwr_value_pointer_type) {
+    if (type.value_type == cwr_value_array_type) {
+        if (target.value_type != cwr_value_array_type) {
+            return false;
+        }
+
+        return cwr_expression_type_value_equals(*type.target_type, *target.target_type);
+    }
+
+    if (type.value_type == cwr_value_pointer_type) {
         if (target.value_type != cwr_value_array_type && target.value_type != cwr_value_pointer_type) {
             return false;
         }
@@ -280,6 +277,8 @@ static cwr_binary_operator_type cwr_binary_operator_type_from_token(cwr_token_ty
             return cwr_binary_operator_negation_type;
         case cwr_token_equals_type:
             return cwr_binary_operator_equals_type;
+        case cwr_token_ampersand_type:
+            return cwr_binary_operator_reference_type;   
         case cwr_token_greater_than_type:
             return cwr_binary_operator_greater_than_type;
         case cwr_token_less_than_type:
@@ -378,19 +377,8 @@ static void cwr_expression_destroy(cwr_expression expression) {
             cwr_expression_destroy(expression.unary.child[0]);
             free(expression.unary.child);
             break;
-        case cwr_expression_dereference_type:
-            cwr_expression_destroy(*expression.dereference.value);
-            free(expression.dereference.value);
-            break;
-        case cwr_expression_reference_type:
-            cwr_expression_destroy(*expression.reference.value);
-            free(expression.reference.value);
-            break;
         case cwr_expression_var_type:
             free(expression.var.name);
-            break;
-        case cwr_expression_type_type:
-            cwr_expression_type_value_destroy(expression.value_type);
             break;
         case cwr_expression_array_type:
             cwr_expression_type_value_destroy(expression.value_type);
