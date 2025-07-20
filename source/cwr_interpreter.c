@@ -103,7 +103,7 @@ cwr_interpreter_result cwr_intepreter_interpret(cwr_interpreter* interpreter, cw
 
                 if (!cwr_scope_add(context.functions, instance)) {
                     cwr_instance_destroy(instance);
-                    cwr_interpreter_error_throw_not_enough_memory(error, statement.location);
+                    cwr_interpreter_error_throw_out_of_memory(error, statement.location);
                 }
                 
                 break;
@@ -171,7 +171,7 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
 
                 if (!cwr_scope_add(program_context.variables, variable)) {
                     cwr_instance_destroy(variable);
-                    cwr_interpreter_error_throw_not_enough_memory(error, statement.location);
+                    cwr_interpreter_error_throw_out_of_memory(error, statement.location);
                     return value;
                 }
             }
@@ -235,7 +235,7 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
 
             if (!cwr_scope_add(program_context.variables, variable)) {
                 cwr_instance_destroy(variable);
-                cwr_interpreter_error_throw_not_enough_memory(error, statement.location);
+                cwr_interpreter_error_throw_out_of_memory(error, statement.location);
                 return value;
             }
 
@@ -299,7 +299,7 @@ cwr_value* cwr_intepreter_evaluate_stat_func_call(cwr_program_context program_co
     cwr_value** arguments = malloc(statement.count * sizeof(cwr_value*));
 
     if (arguments == NULL) {
-        cwr_interpreter_error_throw_not_enough_memory(error, location);
+        cwr_interpreter_error_throw_out_of_memory(error, location);
         return NULL;
     }
 
@@ -361,7 +361,7 @@ cwr_value* cwr_intepreter_evaluate_func(cwr_function_instance instance, cwr_func
         if (!cwr_scope_add(program_context.variables, variable)) {
             cwr_instance_destroy(variable);
             cwr_scope_root_destroy(program_context.variables, body_pointer);
-            cwr_interpreter_error_throw_not_enough_memory(error, context.location);
+            cwr_interpreter_error_throw_out_of_memory(error, context.location);
             return cwr_value_create_void();
         }
     }
@@ -381,7 +381,7 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
                     char* characters = malloc(expression.array.count * sizeof(char));
 
                     if (characters == NULL) {
-                        cwr_interpreter_error_throw_not_enough_memory(error, expression.location);
+                        cwr_interpreter_error_throw_out_of_memory(error, expression.location);
                         return NULL;
                     }
 
@@ -399,7 +399,7 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
                     cwr_value* characters_value = cwr_value_create_array(array);
                     if (characters_value == NULL) {
                         free(characters);
-                        cwr_interpreter_error_throw_not_enough_memory(error, expression.location);
+                        cwr_interpreter_error_throw_out_of_memory(error, expression.location);
                     }
 
                     return characters_value;
@@ -442,28 +442,28 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
 
             cwr_value_runtime_destroy(value);
             if (result == NULL) {
-                cwr_interpreter_error_throw_not_enough_memory(error, expression.location);
+                cwr_interpreter_error_throw_out_of_memory(error, expression.location);
             }
 
             return result;
         case cwr_expression_float_type:
             cwr_value* number = cwr_value_create_float(expression.float_n.value);
             if (number == NULL) {
-                cwr_interpreter_error_throw_not_enough_memory(error, expression.location);
+                cwr_interpreter_error_throw_out_of_memory(error, expression.location);
             }
 
             return number;
         case cwr_expression_integer_type:
             cwr_value* integer_n = cwr_value_create_integer(expression.integer_n.value);
             if (integer_n == NULL) {
-                cwr_interpreter_error_throw_not_enough_memory(error, expression.location);
+                cwr_interpreter_error_throw_out_of_memory(error, expression.location);
             }
 
             return integer_n;
         case cwr_expression_character_type:
             cwr_value* character = cwr_value_create_character(expression.character.value);
             if (character == NULL) {
-                cwr_interpreter_error_throw_not_enough_memory(error, expression.location);
+                cwr_interpreter_error_throw_out_of_memory(error, expression.location);
             }
 
             return character;
@@ -543,7 +543,7 @@ cwr_value* cwr_intepreter_evaluate_expr(cwr_program_context program_context, cwr
             cwr_value_runtime_destroy(right);
 
             if (value_result == NULL) {
-                cwr_interpreter_error_throw_not_enough_memory(error, expression.location);
+                cwr_interpreter_error_throw_out_of_memory(error, expression.location);
             }
 
             return value_result;

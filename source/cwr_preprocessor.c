@@ -82,7 +82,7 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
             }
 
             if (!cwr_preprocessor_add_included(preprocessor, name.value)) {
-                cwr_preprocessor_throw_not_enough_memory_error(preprocessor, name.location);
+                cwr_preprocessor_throw_out_of_memory(preprocessor, name.location);
                 break;
             }
 
@@ -94,7 +94,7 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
 
             cwr_lexer* lexer = cwr_lexer_create(preprocessor->source.executor, source, cwr_lexer_configuration_default());
             if (lexer == NULL) {
-                cwr_preprocessor_throw_not_enough_memory_error(preprocessor, name.location);
+                cwr_preprocessor_throw_out_of_memory(preprocessor, name.location);
                 break;
             }
 
@@ -117,7 +117,7 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
                 free(included_tokens.tokens);
                 cwr_lexer_destroy(lexer);
                 
-                cwr_preprocessor_throw_not_enough_memory_error(preprocessor, name.location);
+                cwr_preprocessor_throw_out_of_memory(preprocessor, name.location);
                 break;
             }
             
@@ -223,8 +223,8 @@ bool cwr_preprocessor_is_not_ended(cwr_preprocessor* preprocessor) {
     return preprocessor->position < preprocessor->count - 1;
 }
 
-void cwr_preprocessor_throw_not_enough_memory_error(cwr_preprocessor* preprocessor, cwr_location location) {
-    cwr_preprocessor_throw_error(preprocessor, cwr_preprocessor_error_not_enough_memory_type, "Not enough memory", location);
+void cwr_preprocessor_throw_out_of_memory(cwr_preprocessor* preprocessor, cwr_location location) {
+    cwr_preprocessor_throw_error(preprocessor, cwr_preprocessor_error_out_of_memory_type, "Out of memory", location);
 }
 
 void cwr_preprocessor_throw_error(cwr_preprocessor* preprocessor, cwr_preprocessor_error_type type, char* message, cwr_location location) {

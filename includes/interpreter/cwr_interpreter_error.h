@@ -5,7 +5,7 @@
 
 typedef enum cwr_interpreter_error_type {
     cwr_interpreter_error_incorrect_type_type,
-    cwr_interpreter_error_not_enough_memory_type,
+    cwr_interpreter_error_out_of_memory_type,
     cwr_interpreter_error_entry_point_not_found_type,
     cwr_interpreter_error_negative_index_type,
     cwr_interpreter_error_index_out_of_range_type,
@@ -30,8 +30,8 @@ static void cwr_interpreter_error_throw(cwr_interpreter_error* error, cwr_interp
     error->is_failed = true;
 }
 
-static void cwr_interpreter_error_throw_not_enough_memory(cwr_interpreter_error* error,  cwr_location location) {
-    cwr_interpreter_error_throw(error, cwr_interpreter_error_not_enough_memory_type, "Not enough memory", location);
+static void cwr_interpreter_error_throw_out_of_memory(cwr_interpreter_error* error,  cwr_location location) {
+    cwr_interpreter_error_throw(error, cwr_interpreter_error_out_of_memory_type, "Out of memory", location);
 }
 
 #endif //CWR_INTERPRETER_ERROR_H

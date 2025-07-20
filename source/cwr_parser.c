@@ -334,7 +334,7 @@ cwr_var_decl_statement cwr_parser_parse_variable_declaration(cwr_parser* parser,
     char* name_copy = cwr_string_duplicate(name.value);
     if (name_copy == NULL) {
         cwr_expression_type_value_destroy(type);
-        cwr_parser_throw_low_memory_error(parser, name.location);
+        cwr_parser_throw_out_of_memory(parser, name.location);
         return (cwr_var_decl_statement) {};
     }
 
@@ -372,7 +372,7 @@ cwr_var_decl_statement cwr_parser_parse_variable_declaration(cwr_parser* parser,
         free(name_copy);
         cwr_expression_destroy(value);
         cwr_expression_type_value_destroy(type);
-        cwr_parser_throw_low_memory_error(parser, cwr_parser_current(parser).location);
+        cwr_parser_throw_out_of_memory(parser, cwr_parser_current(parser).location);
         return (cwr_var_decl_statement) {};
     }
 
@@ -391,7 +391,7 @@ cwr_func_decl_statement cwr_parser_parse_function_declaration(cwr_parser* parser
     char* name_copy = cwr_string_duplicate(name.value);
     if (name_copy == NULL) {
         cwr_expression_type_value_destroy(type);
-        cwr_parser_throw_low_memory_error(parser, name.location);
+        cwr_parser_throw_out_of_memory(parser, name.location);
         return (cwr_func_decl_statement) {};
     }
 
@@ -484,7 +484,7 @@ cwr_func_decl_statement cwr_parser_parse_function_declaration(cwr_parser* parser
     };
     if (!cwr_parser_add_function(parser, function)) {
         cwr_func_decl_destroy(func_decl);
-        cwr_parser_throw_low_memory_error(parser, name.location);
+        cwr_parser_throw_out_of_memory(parser, name.location);
         return (cwr_func_decl_statement) {};
     }
 
@@ -562,7 +562,7 @@ cwr_for_loop_statement cwr_parser_parse_for_loop(cwr_parser* parser) {
 
         if (!cwr_parser_add_variable(parser, variable)) {
             cwr_statement_destroy_for_loop(for_stat);
-            cwr_parser_throw_low_memory_error(parser, cwr_parser_current(parser).location);
+            cwr_parser_throw_out_of_memory(parser, cwr_parser_current(parser).location);
             return (cwr_for_loop_statement) {};
         }
     }
@@ -628,7 +628,7 @@ cwr_func_call_statement cwr_parser_parse_function_call(cwr_parser* parser) {
 
     char* name_copy = cwr_string_duplicate(name.value);
     if (name_copy == NULL) {
-        cwr_parser_throw_low_memory_error(parser, name.location);
+        cwr_parser_throw_out_of_memory(parser, name.location);
         return (cwr_func_call_statement) {};
     }
 
@@ -833,7 +833,7 @@ cwr_expression cwr_parser_parse_binary(cwr_parser* parser) {
         if (children == NULL) {
             cwr_expression_destroy(left);
             cwr_expression_destroy(right);
-            cwr_parser_throw_low_memory_error(parser, left.location);
+            cwr_parser_throw_out_of_memory(parser, left.location);
             return (cwr_expression) {};
         }
 
@@ -885,7 +885,7 @@ cwr_expression cwr_parser_parse_multiplicative(cwr_parser* parser) {
             if (children == NULL) {
                 cwr_expression_destroy(left);
                 cwr_expression_destroy(right);
-                cwr_parser_throw_low_memory_error(parser, left.location);
+                cwr_parser_throw_out_of_memory(parser, left.location);
                 return (cwr_expression) {};
             }
 
@@ -924,7 +924,7 @@ cwr_expression cwr_parser_parse_unary(cwr_parser* parser, bool only_value) {
 
         cwr_expression* child = malloc(sizeof(cwr_expression));
         if (child == NULL) {
-            cwr_parser_throw_low_memory_error(parser, cwr_parser_current(parser).location);
+            cwr_parser_throw_out_of_memory(parser, cwr_parser_current(parser).location);
             return (cwr_expression) {};
         }
 
@@ -988,7 +988,7 @@ cwr_expression cwr_parser_parse_array_element(cwr_parser* parser) {
         if (children == NULL) {
             cwr_expression_destroy(value);
             cwr_expression_destroy(index);
-            cwr_parser_throw_low_memory_error(parser, value.location);
+            cwr_parser_throw_out_of_memory(parser, value.location);
             return (cwr_expression) {};
         }
 
@@ -1032,7 +1032,7 @@ cwr_expression cwr_parser_parse_value(cwr_parser* parser) {
 
             char* name = cwr_string_duplicate(current.value);
             if (name == NULL) {
-                cwr_parser_throw_low_memory_error(parser, current.location);
+                cwr_parser_throw_out_of_memory(parser, current.location);
                 return (cwr_expression) {};
             }
 
@@ -1072,7 +1072,7 @@ cwr_expression cwr_parser_parse_value(cwr_parser* parser) {
             cwr_expression* content = malloc(count * sizeof(cwr_expression) + sizeof(cwr_expression));
 
             if (content == NULL) {
-                cwr_parser_throw_low_memory_error(parser, current.location);
+                cwr_parser_throw_out_of_memory(parser, current.location);
                 return (cwr_expression) {};
             }
 
@@ -1223,8 +1223,8 @@ void cwr_parser_skip(cwr_parser* parser) {
     parser->position++;
 }
 
-void cwr_parser_throw_low_memory_error(cwr_parser* parser, cwr_location location) {
-    cwr_parser_throw_error(parser, cwr_parser_error_not_enough_memory_type, "Not enough memory", location);
+void cwr_parser_throw_out_of_memory(cwr_parser* parser, cwr_location location) {
+    cwr_parser_throw_error(parser, cwr_parser_error_out_of_memory_type, "Out of memory", location);
 }
 
 void cwr_parser_throw_error(cwr_parser* parser, cwr_parser_error_type type, char* message, cwr_location location) {

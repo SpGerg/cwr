@@ -111,7 +111,7 @@ bool cwr_parser_ended(cwr_parser* parser);
 
 void cwr_parser_skip(cwr_parser* parser);
 
-void cwr_parser_throw_low_memory_error(cwr_parser* parser, cwr_location location);
+void cwr_parser_throw_out_of_memory(cwr_parser* parser, cwr_location location);
 
 void cwr_parser_throw_error(cwr_parser* parser, cwr_parser_error_type type, char* message, cwr_location location);
 

@@ -155,7 +155,6 @@ cwr_tokens_list cwr_lexer_tokenize(cwr_lexer* lexer) {
                         continue;
                     }
                     
-                    
                     size_t last_count = strlen(last.value);
                     size_t buffer_count = strlen(buffer);
                     size_t count = last_count + buffer_count;
