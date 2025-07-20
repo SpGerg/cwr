@@ -264,6 +264,8 @@ cwr_value* cwr_intepreter_evaluate_stat(cwr_program_context program_context, cwr
             }
 
             cwr_value_set(identifier, value);
+
+            // In identifier we already have data from value, so we need free the block of memory of value
             free(value);
             return identifier;
         }
