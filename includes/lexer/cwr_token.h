@@ -5,6 +5,8 @@
 #include <stdbool.h>
 
 typedef enum cwr_token_type {
+    // Does not exist at parsing, only preprocessor uses it
+    cwr_token_new_line_type,
     cwr_token_word_type,
     cwr_token_string_type,
     cwr_token_char_type,
@@ -17,7 +19,9 @@ typedef enum cwr_token_type {
     cwr_token_void_type,
     cwr_token_if_type,
     cwr_token_for_type,
+    cwr_token_directive_prefix_type,
     cwr_token_include_type,
+    cwr_token_define_type,
     cwr_token_left_par_type,
     cwr_token_right_par_type,
     cwr_token_left_curly_type,
@@ -71,6 +75,15 @@ static cwr_token cwr_token_create(cwr_token_type type, char* value, cwr_location
         .value = value,
         .location = location,
         .is_free_value = is_free_value
+    };
+}
+
+static cwr_token cwr_token_clone(cwr_token token) {
+    return (cwr_token) {
+        .type = token.type,
+        .value = token.value,
+        .location = token.location,
+        .is_free_value = false
     };
 }
 

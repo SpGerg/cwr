@@ -61,6 +61,10 @@ int main() {
 
     free(source);
 
+    for (size_t i = 0;i < tokens_list.count;i++) {
+        printf(tokens_list.tokens[i].value);
+    }
+
     cwr_parser* parser = cwr_parser_create(tokens_list);
     cwr_parser_result statements = cwr_parser_parse(parser);
 

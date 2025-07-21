@@ -15,6 +15,12 @@
 
 typedef struct cwr_preprocessor cwr_preprocessor;
 
+typedef struct cwr_preprocessor_macros {
+    char* name;
+    cwr_token* value;
+    size_t value_count;
+} cwr_preprocessor_macros;
+
 typedef struct cwr_preprocessor_result {
     cwr_tokens_list tokens_list;
     cwr_preprocessor_error error;
@@ -28,6 +34,10 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor);
 bool cwr_preprocessor_is_included(cwr_preprocessor* preprocessor, const char* name);
 
 bool cwr_preprocessor_add_included(cwr_preprocessor* preprocessor, char* name);
+
+bool cwr_preprocessor_add_macros(cwr_preprocessor* preprocessor, cwr_preprocessor_macros macros);
+
+cwr_preprocessor_macros* cwr_preprocessor_find_macros(cwr_preprocessor* preprocessor, char* name);
 
 void cwr_preprocessor_skip(cwr_preprocessor* preprocessor);
 

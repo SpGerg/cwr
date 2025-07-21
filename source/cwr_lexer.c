@@ -13,6 +13,7 @@ typedef struct cwr_lexer {
     cwr_string_buffer* buffer;
     cwr_lexer_configuration configuration;
     size_t position;
+    bool add_new_line;
 } cwr_lexer;
 
 static cwr_location cwr_lexer_create_location(cwr_lexer* lexer) {
@@ -79,6 +80,10 @@ bool cwr_lexer_add_token(cwr_lexer* lexer, cwr_token token) {
         return false;
     }
 
+    if (token.type == cwr_token_define_type) {
+        lexer->add_new_line = true;
+    }
+
     lexer->tokens = buffer;
     lexer->tokens[lexer->capacity++] = token;
     return true;
@@ -110,11 +115,18 @@ bool cwr_lexer_add_token_char(cwr_lexer* lexer, cwr_token_type type, char value)
 cwr_tokens_list cwr_lexer_tokenize(cwr_lexer* lexer) {
     lexer->tokens = NULL;
     lexer->capacity = 0;
+    lexer->position = 0;
+    lexer->add_new_line = false;
 
     while (cwr_lexer_not_ended(lexer)) {
         char current = cwr_lexer_current(lexer);
 
         if (iscntrl(current)) {
+            if (current == '\n' && lexer->add_new_line) {
+                cwr_lexer_add_token_char(lexer, cwr_token_new_line_type, '\n');
+                lexer->add_new_line = false;
+            }
+
             cwr_lexer_add_buffer(lexer, true);
             cwr_lexer_skip(lexer);
 

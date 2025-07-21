@@ -1,9 +1,8 @@
 #include <stdio.h>
 
-int main() {
-    char* message = "Hello, world";
-    *message = "Other world";
-    printf(*message);
+#define MUTEX 0
 
+int main() {
+    printf(MUTEX);
     return 0;
 }
