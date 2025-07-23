@@ -5,11 +5,15 @@
 #include <cwr_preprocessor_error.h>
 #include <cwr_token.h>
 
-#define CWR_PREPROCESSOR_MAX_RECURSIVE 1024
-
 #define CWR_PREPROCESSOR_FAILED_AND_BREAK(preprocessor) { \
     if (preprocessor->is_failed) { \
         break;\
+    } \
+}
+
+#define CWR_PREPROCESSOR_FAILED_AND_RETURN(preprocessor) { \
+    if (preprocessor->is_failed) { \
+        return false;\
     } \
 }
 
@@ -30,6 +34,14 @@ typedef struct cwr_preprocessor_result {
 cwr_preprocessor* cwr_preprocessor_create(cwr_tokens_list tokens_list);
 
 cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor);
+
+bool cwr_preprocessor_parse_include(cwr_preprocessor* preprocessor, size_t directive_start);
+
+bool cwr_preprocessor_parse_macros_definition(cwr_preprocessor* preprocessor, size_t directive_start);
+
+bool cwr_preprocessor_parse_macros_expansion(cwr_preprocessor* preprocessor, cwr_preprocessor_macros macros, cwr_location location);
+
+bool cwr_preprocessor_parse_string_concatenation(cwr_preprocessor* preprocessor, cwr_token current, cwr_token* previous);
 
 bool cwr_preprocessor_is_included(cwr_preprocessor* preprocessor, const char* name);
 
