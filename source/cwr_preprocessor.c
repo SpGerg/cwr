@@ -15,6 +15,7 @@ typedef struct cwr_preprocessor {
     size_t included_count;
     cwr_preprocessor_macros* macroses;
     size_t macroses_count;
+    size_t expansion_count;
     cwr_preprocessor_error error;
     bool is_failed;
 } cwr_preprocessor;
@@ -32,6 +33,7 @@ cwr_preprocessor* cwr_preprocessor_create(cwr_tokens_list tokens_list) {
     preprocessor->included_count = 0;
     preprocessor->macroses = NULL;
     preprocessor->macroses_count = 0;
+    preprocessor->expansion_count = 0;
 
     return preprocessor;
 }
@@ -47,6 +49,12 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
             if (current.type == cwr_token_word_type) {
                 cwr_preprocessor_macros* macro = cwr_preprocessor_find_macros(preprocessor, current.value);
                 if (macro != NULL && macro->value != NULL) {
+                    if (preprocessor->expansion_count++ > CWR_PREPROCESSOR_MAX_RECURSIVE) {
+                        cwr_preprocessor_throw_error(preprocessor, cwr_preprocessor_error_recursion_depth_type, 
+                                                    "Macro recursion depth exceeded", current.location);
+                        break;
+                    }
+                    
                     size_t position = preprocessor->position;
                     size_t new_count = preprocessor->count - 1 + macro->value_count;
                     size_t tail_count = preprocessor->count - position - 1;
@@ -56,9 +64,8 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
                         cwr_preprocessor_throw_out_of_memory(preprocessor, current.location);
                         break;
                     }
-                    
+
                     preprocessor->tokens = new_buffer;
-                    
                     cwr_token_destroy(new_buffer[position]);
                     
                     if (tail_count > 0) {
@@ -75,8 +82,53 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
                     
                     preprocessor->count = new_count;
                     preprocessor->position = position;
+                    preprocessor->expansion_count = 0;
                     
                     continue;
+                }
+            }
+            else if (current.type == cwr_token_string_type) {
+                if (preprocessor->position > 0) {
+                    cwr_token* prev_token = &preprocessor->tokens[preprocessor->position - 1];
+        
+                    if (prev_token->type == cwr_token_string_type) {
+                        size_t prev_length = strlen(prev_token->value);
+                        size_t current_length = strlen(current.value);
+                        size_t new_length = prev_length + current_length;
+                        
+                        char* concatenated = malloc(new_length + 1);
+                        if (concatenated == NULL) {
+                            cwr_preprocessor_throw_out_of_memory(preprocessor, current.location);
+                            break;
+                        }
+                        
+                        memcpy(concatenated, prev_token->value, prev_length);
+                        memcpy(concatenated + prev_length, current.value, current_length);
+                        concatenated[new_length] = '\0';
+                        
+                        if (prev_token->is_free_value) {
+                            free(prev_token->value);
+                        }
+
+                        if (current.is_free_value) {
+                            free(current.value);
+                        }
+                        
+                        prev_token->value = concatenated;
+                        prev_token->is_free_value = true;
+                        
+                        size_t elements_to_move = preprocessor->count - preprocessor->position - 1;
+                        if (elements_to_move > 0) {
+                            memmove(
+                                preprocessor->tokens + preprocessor->position,
+                                preprocessor->tokens + preprocessor->position + 1,
+                                elements_to_move * sizeof(cwr_token)
+                            );
+                        }
+
+                        preprocessor->count--;
+                        continue;
+                    }
                 }
             }
 
@@ -108,10 +160,16 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
             cwr_preprocessor_except(preprocessor, cwr_token_greater_than_type);
             CWR_PREPROCESSOR_FAILED_AND_BREAK(preprocessor);
 
+            char* name_copy = cwr_string_duplicate(name.value);
+            if (name_copy == NULL) {
+                cwr_preprocessor_throw_out_of_memory(preprocessor, name.location);
+                break;
+            }
+
             // # include < [name].h >
             const size_t include_statement_tokens_count = 7;
 
-            if (cwr_preprocessor_is_included(preprocessor, name.value)) {
+            if (cwr_preprocessor_is_included(preprocessor, name_copy)) {
                 for (size_t i = 0; i < include_statement_tokens_count; i++) {
                     cwr_token_destroy(preprocessor->tokens[directive_start + i]);
                 }
@@ -127,15 +185,17 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
                 
                 preprocessor->count -= include_statement_tokens_count;
                 preprocessor->position = directive_start;
+                free(name_copy);
                 continue;
             }
 
-            if (!cwr_preprocessor_add_included(preprocessor, name.value)) {
+            if (!cwr_preprocessor_add_included(preprocessor, name_copy)) {
+                free(name_copy);
                 cwr_preprocessor_throw_out_of_memory(preprocessor, name.location);
                 break;
             }
 
-            char* source = cwr_preprocessor_includer_get_from_std(name.value);
+            char* source = cwr_preprocessor_includer_get_from_std(name_copy);
             if (source == NULL) {
                 cwr_preprocessor_throw_error(preprocessor, cwr_preprocessor_error_module_not_found_type, "Module not found", name.location);
                 break;
@@ -143,6 +203,7 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
 
             cwr_lexer* lexer = cwr_lexer_create(preprocessor->source.executor, source, cwr_lexer_configuration_default());
             if (lexer == NULL) {
+                free(name_copy);
                 cwr_preprocessor_throw_out_of_memory(preprocessor, name.location);
                 break;
             }
@@ -159,6 +220,7 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
 
             cwr_token* new_buffer = realloc(preprocessor->tokens, new_count * sizeof(cwr_token));
             if (new_buffer == NULL) {
+                free(name_copy);
                 for (size_t i = 0; i < included_tokens.count; i++) {
                     cwr_token_destroy(included_tokens.tokens[i]);
                 }
@@ -195,8 +257,15 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
             cwr_token name = cwr_preprocessor_except(preprocessor, cwr_token_word_type);
             CWR_PREPROCESSOR_FAILED_AND_BREAK(preprocessor);
 
+            // We need copy of token value because this token will be destroyed
+            char* name_copy = cwr_string_duplicate(name.value);
+            if (name_copy == NULL) {
+                cwr_preprocessor_throw_out_of_memory(preprocessor, name.location);
+                break;
+            }
+
             cwr_preprocessor_macros macro = {
-                .name = name.value,
+                .name = name_copy,
                 .value = NULL,
                 .value_count = 0
             };
@@ -221,12 +290,13 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
                 if (body_count > 0) {
                     cwr_token* tokens = malloc(body_count * sizeof(cwr_token));
                     if (tokens == NULL) {
+                        free(name_copy);
                         cwr_preprocessor_throw_out_of_memory(preprocessor, name.location);
                         break;
                     }
                     
                     for (size_t i = 0; i < body_count; i++) {
-                        tokens[i] = preprocessor->tokens[body_start + i];
+                        tokens[i] = cwr_token_clone(preprocessor->tokens[body_start + i]);
                     }
                     
                     macro.value = tokens;
@@ -235,21 +305,25 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
             }
 
             if (!cwr_preprocessor_add_macros(preprocessor, macro)) {
+                cwr_preprocessor_macros_destroy(macro);
                 cwr_preprocessor_throw_out_of_memory(preprocessor, name.location);
                 break;
             }
 
-            size_t directive_token_count = 3; // # define [name] [new_line]
+            size_t directive_token_count = 3; // # define [name], body value and new line counting below
             if (has_value) {
                 directive_token_count += body_count;
             }
-
-            if (cwr_preprocessor_current(preprocessor).type == cwr_token_new_line_type) {
+            
+            if (preprocessor->position < preprocessor->count && 
+                preprocessor->tokens[preprocessor->position].type == cwr_token_new_line_type) {
                 directive_token_count++;
             }
 
             for (size_t i = 0; i < directive_token_count; i++) {
-                cwr_token_destroy(preprocessor->tokens[directive_start + i]);
+                if (directive_start + i < preprocessor->count) {
+                    cwr_token_destroy(preprocessor->tokens[directive_start + i]);
+                }
             }
 
             size_t elements_to_move = preprocessor->count - (directive_start + directive_token_count);
@@ -268,10 +342,18 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor* preprocessor) {
     }
 
     if (preprocessor->included_count > 0) { 
+        for (size_t i = 0;i < preprocessor->included_count;i++) {
+            free(preprocessor->included[i]);
+        }
+
         free(preprocessor->included);
     }
 
     if (preprocessor->macroses_count > 0) { 
+        for (size_t i = 0;i < preprocessor->macroses_count;i++) {
+            cwr_preprocessor_macros_destroy(preprocessor->macroses[i]);
+        }
+
         free(preprocessor->macroses);
     }
 
@@ -382,6 +464,20 @@ void cwr_preprocessor_throw_error(cwr_preprocessor* preprocessor, cwr_preprocess
         .location = location
     };
     preprocessor->is_failed = true;
+}
+
+void cwr_preprocessor_macros_destroy(cwr_preprocessor_macros macros) {
+    // All macroses names is allocated because of tokens destroying
+    free(macros.name);
+
+    // All macroses tokens duplicated, in replaced it copy too, so we dont worry
+    if (macros.value_count > 0) {
+        for (size_t i = 0;i < macros.value_count;i++) {
+            cwr_token_destroy(macros.value[i]);
+        }
+
+        free(macros.value);
+    }
 }
 
 void cwr_preprocessor_destroy(cwr_preprocessor* preprocessor) {

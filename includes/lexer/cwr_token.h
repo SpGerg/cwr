@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <cwr_string.h>
 
 typedef enum cwr_token_type {
     // Does not exist at parsing, only preprocessor uses it
@@ -81,9 +82,9 @@ static cwr_token cwr_token_create(cwr_token_type type, char* value, cwr_location
 static cwr_token cwr_token_clone(cwr_token token) {
     return (cwr_token) {
         .type = token.type,
-        .value = token.value,
+        .value = cwr_string_duplicate(token.value),
         .location = token.location,
-        .is_free_value = false
+        .is_free_value = true
     };
 }
 

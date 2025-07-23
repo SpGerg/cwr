@@ -7,7 +7,8 @@ typedef enum cwr_preprocessor_error_type {
     cwr_preprocessor_error_incorrect_include_type,
     cwr_preprocessor_error_except_token_type,
     cwr_preprocessor_error_module_not_found_type,
-    cwr_preprocessor_error_out_of_memory_type
+    cwr_preprocessor_error_out_of_memory_type,
+    cwr_preprocessor_error_recursion_depth_type
 } cwr_preprocessor_error_type;
 
 typedef struct cwr_preprocessor_error {

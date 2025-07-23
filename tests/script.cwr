@@ -1,8 +1,10 @@
 #include <stdio.h>
 
-#define MUTEX 0
+#define PRINTER printf(
+#define PRINTER_END );
+#define TRIPLE_MARK "!" "!" "!" 
 
 int main() {
-    printf(MUTEX);
+    PRINTER "Hello, world" TRIPLE_MARK PRINTER_END
     return 0;
 }

@@ -159,35 +159,6 @@ cwr_tokens_list cwr_lexer_tokenize(cwr_lexer* lexer) {
             }
 
             cwr_lexer_skip(lexer);
-            if (lexer->capacity > 0) {
-                cwr_token last = lexer->tokens[lexer->capacity - 1];
-                if (last.type == cwr_token_string_type) {
-                    char* buffer = cwr_string_buffer_copy_and_clear(lexer->buffer);
-                    if (buffer == NULL) {
-                        continue;
-                    }
-                    
-                    size_t last_count = strlen(last.value);
-                    size_t buffer_count = strlen(buffer);
-                    size_t count = last_count + buffer_count;
-                    char* concatenated = malloc((count * sizeof(char)) + sizeof(char));
-                    if (concatenated == NULL) {
-                        free(buffer);
-                        continue;
-                    }
-
-                    memcpy(concatenated, last.value, last_count);
-                    memcpy(concatenated + last_count, buffer, buffer_count + 1);
-
-                    free(lexer->tokens[lexer->capacity - 1].value);
-                    free(buffer);
-
-                    concatenated[count] = '\0';
-                    lexer->tokens[lexer->capacity - 1].value = concatenated;
-                    continue;
-                }
-            }
-
             cwr_lexer_add_token_string(lexer, cwr_token_string_type, cwr_string_buffer_copy_and_clear(lexer->buffer), true);
             continue;
         }

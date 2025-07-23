@@ -5,7 +5,7 @@
 #include <cwr_preprocessor_error.h>
 #include <cwr_token.h>
 
-#define CWR_PREPROCESSOR_MAX_INCLUDED 64
+#define CWR_PREPROCESSOR_MAX_RECURSIVE 1024
 
 #define CWR_PREPROCESSOR_FAILED_AND_BREAK(preprocessor) { \
     if (preprocessor->is_failed) { \
@@ -52,6 +52,8 @@ bool cwr_preprocessor_is_not_ended(cwr_preprocessor* preprocessor);
 void cwr_preprocessor_throw_out_of_memory(cwr_preprocessor* preprocessor, cwr_location location);
 
 void cwr_preprocessor_throw_error(cwr_preprocessor* preprocessor, cwr_preprocessor_error_type type, char* message, cwr_location location);
+
+void cwr_preprocessor_macros_destroy(cwr_preprocessor_macros macros);
 
 void cwr_preprocessor_destroy(cwr_preprocessor* preprocessor);
 
