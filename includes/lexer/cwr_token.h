@@ -5,7 +5,8 @@
 #include <stdbool.h>
 #include <cwr_string.h>
 
-typedef enum cwr_token_type {
+typedef enum cwr_token_type
+{
     // Does not exist at parsing, only preprocessor uses it
     cwr_token_new_line_type,
     cwr_token_word_type,
@@ -44,58 +45,65 @@ typedef enum cwr_token_type {
     cwr_token_comma_type
 } cwr_token_type;
 
-typedef struct cwr_location {
-    char* executor;
+typedef struct cwr_location
+{
+    char *executor;
     size_t position;
 } cwr_location;
 
-typedef struct cwr_token {
+typedef struct cwr_token
+{
     cwr_token_type type;
-    char* value;
+    char *value;
     cwr_location location;
     bool is_free_value;
 } cwr_token;
 
-typedef struct cwr_tokens_list {
-    char* source;
-    char* executor;
-    cwr_token* tokens;
+typedef struct cwr_tokens_list
+{
+    char *source;
+    char *executor;
+    cwr_token *tokens;
     size_t count;
 } cwr_tokens_list;
 
-static cwr_location cwr_location_create(char* executor, size_t position) {
-    return (cwr_location) {
+static cwr_location cwr_location_create(char *executor, size_t position)
+{
+    return (cwr_location){
         .executor = executor,
-        .position = position
-    };
+        .position = position};
 }
 
-static cwr_token cwr_token_create(cwr_token_type type, char* value, cwr_location location, bool is_free_value) {
-    return (cwr_token) {
+static cwr_token cwr_token_create(cwr_token_type type, char *value, cwr_location location, bool is_free_value)
+{
+    return (cwr_token){
         .type = type,
         .value = value,
         .location = location,
-        .is_free_value = is_free_value
-    };
+        .is_free_value = is_free_value};
 }
 
-static cwr_token cwr_token_clone(cwr_token token) {
-    return (cwr_token) {
+static cwr_token cwr_token_clone(cwr_token token)
+{
+    return (cwr_token){
         .type = token.type,
         .value = cwr_string_duplicate(token.value),
         .location = token.location,
-        .is_free_value = true
-    };
+        .is_free_value = true};
 }
 
-static void cwr_token_destroy(cwr_token token) {
-    if (token.is_free_value) {
+static void cwr_token_destroy(cwr_token token)
+{
+    if (token.is_free_value)
+    {
         free(token.value);
     }
 }
 
-static void cwr_tokens_list_destroy(cwr_tokens_list tokens_list) {
-    for (size_t i = 0;i < tokens_list.count;i++) {
+static void cwr_tokens_list_destroy(cwr_tokens_list tokens_list)
+{
+    for (size_t i = 0; i < tokens_list.count; i++)
+    {
         cwr_token token = tokens_list.tokens[i];
 
         cwr_token_destroy(token);
@@ -104,17 +112,19 @@ static void cwr_tokens_list_destroy(cwr_tokens_list tokens_list) {
     free(tokens_list.tokens);
 }
 
-static inline bool cwr_token_type_is_value(cwr_token_type type) {
-    switch (type) {
-        case cwr_token_string_type:
-            return true;
-        case cwr_token_number_type:
-            return true;
-        case cwr_token_char_type:
-            return true;
-        default:
-            return false;
+static inline bool cwr_token_type_is_value(cwr_token_type type)
+{
+    switch (type)
+    {
+    case cwr_token_string_type:
+        return true;
+    case cwr_token_number_type:
+        return true;
+    case cwr_token_char_type:
+        return true;
+    default:
+        return false;
     }
 }
 
-#endif //CWR_TOKEN_H
+#endif // CWR_TOKEN_H

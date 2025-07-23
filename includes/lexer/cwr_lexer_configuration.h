@@ -6,21 +6,25 @@
 
 #define CWR_LEXER_CONFIGURATION_TOKENS_COUNT 30
 
-typedef struct cwr_lexer_token_config {
+typedef struct cwr_lexer_token_config
+{
     cwr_token_type type;
-    char* value;
+    char *value;
 } cwr_lexer_token_config;
 
-typedef struct cwr_lexer_configuration {
+typedef struct cwr_lexer_configuration
+{
     cwr_lexer_token_config tokens[CWR_LEXER_CONFIGURATION_TOKENS_COUNT];
     size_t count;
 } cwr_lexer_configuration;
 
-static cwr_lexer_token_config cwr_lexer_configuration_create_token(cwr_token_type type, char* value) {
-    return (cwr_lexer_token_config) { .type = type, .value = value };
+static cwr_lexer_token_config cwr_lexer_configuration_create_token(cwr_token_type type, char *value)
+{
+    return (cwr_lexer_token_config){.type = type, .value = value};
 }
 
-static cwr_lexer_configuration cwr_lexer_configuration_default() {
+static cwr_lexer_configuration cwr_lexer_configuration_default()
+{
     cwr_lexer_configuration configuration;
     configuration.tokens[0] = cwr_lexer_configuration_create_token(cwr_token_return_type, "return");
     configuration.tokens[1] = cwr_lexer_configuration_create_token(cwr_token_int_type, "int");
@@ -56,11 +60,14 @@ static cwr_lexer_configuration cwr_lexer_configuration_default() {
     return configuration;
 }
 
-static bool cwr_lexer_configuration_try_get_token(cwr_lexer_configuration configuration, char* name, cwr_token_type* type) {
-    for (size_t i = 0;i < CWR_LEXER_CONFIGURATION_TOKENS_COUNT;i++) {
+static bool cwr_lexer_configuration_try_get_token(cwr_lexer_configuration configuration, char *name, cwr_token_type *type)
+{
+    for (size_t i = 0; i < CWR_LEXER_CONFIGURATION_TOKENS_COUNT; i++)
+    {
         cwr_lexer_token_config token = configuration.tokens[i];
 
-        if (strcmp(token.value, name) != 0) {
+        if (strcmp(token.value, name) != 0)
+        {
             continue;
         }
 
@@ -71,11 +78,14 @@ static bool cwr_lexer_configuration_try_get_token(cwr_lexer_configuration config
     return false;
 }
 
-static bool cwr_lexer_configuration_try_get_token_char(cwr_lexer_configuration configuration, char name, cwr_token_type* type) {
-    for (size_t i = 0;i < CWR_LEXER_CONFIGURATION_TOKENS_COUNT;i++) {
+static bool cwr_lexer_configuration_try_get_token_char(cwr_lexer_configuration configuration, char name, cwr_token_type *type)
+{
+    for (size_t i = 0; i < CWR_LEXER_CONFIGURATION_TOKENS_COUNT; i++)
+    {
         cwr_lexer_token_config token = configuration.tokens[i];
 
-        if (token.value == NULL || token.value[1] != '\0' || token.value[0] != name) {
+        if (token.value == NULL || token.value[1] != '\0' || token.value[0] != name)
+        {
             continue;
         }
 
@@ -86,11 +96,14 @@ static bool cwr_lexer_configuration_try_get_token_char(cwr_lexer_configuration c
     return false;
 }
 
-static char* cwr_lexer_configuration_get_value(cwr_lexer_configuration configuration, cwr_token_type type) {
-    for (size_t i = 0;i < CWR_LEXER_CONFIGURATION_TOKENS_COUNT;i++) {
+static char *cwr_lexer_configuration_get_value(cwr_lexer_configuration configuration, cwr_token_type type)
+{
+    for (size_t i = 0; i < CWR_LEXER_CONFIGURATION_TOKENS_COUNT; i++)
+    {
         cwr_lexer_token_config token = configuration.tokens[i];
 
-        if (token.type != type) {
+        if (token.type != type)
+        {
             continue;
         }
 
@@ -100,4 +113,4 @@ static char* cwr_lexer_configuration_get_value(cwr_lexer_configuration configura
     return NULL;
 }
 
-#endif //CWR_LEXER_CONFIGURATION_H
+#endif // CWR_LEXER_CONFIGURATION_H
