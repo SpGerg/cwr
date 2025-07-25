@@ -273,6 +273,9 @@ bool cwr_preprocessor_parse_macros_definition(cwr_preprocessor *preprocessor, si
     bool has_value = false;
     size_t body_count = 0;
 
+    bool with_number = false;
+    long number = 0;
+
     if (!cwr_preprocessor_match(preprocessor, cwr_token_new_line_type))
     {
         has_value = true;
@@ -307,6 +310,15 @@ bool cwr_preprocessor_parse_macros_definition(cwr_preprocessor *preprocessor, si
 
             macro.value = tokens;
             macro.value_count = body_count;
+
+            if (body_count == 1) 
+            {
+                cwr_token token = tokens[0];
+                if (token.type == cwr_token_number_type && !cwr_string_is_float(token.value)) {
+                    macro.with_number = true;
+                    macro.number = atol(token.value);
+                }
+            }
         }
     }
 

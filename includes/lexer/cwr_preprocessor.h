@@ -28,6 +28,8 @@ typedef struct cwr_preprocessor_macros
     char *name;
     cwr_token *value;
     size_t value_count;
+    long number;
+    bool with_number;
 } cwr_preprocessor_macros;
 
 typedef struct cwr_preprocessor_result

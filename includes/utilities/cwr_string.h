@@ -16,4 +16,8 @@ static inline char *cwr_string_duplicate(char *source)
     return copy;
 }
 
+static inline bool cwr_string_is_float(char *source) {
+    return strchr(source, '.') != NULL;
+}
+
 #endif // CWR_STRING_H

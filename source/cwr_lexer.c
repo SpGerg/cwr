@@ -158,8 +158,18 @@ cwr_tokens_list cwr_lexer_tokenize(cwr_lexer *lexer)
 
         if (cwr_string_buffer_is_empty(lexer->buffer) && isdigit(current))
         {
-            while (isdigit(current))
+            bool with_dot = false;
+
+            while (isdigit(current) || current == '.')
             {
+                if (current == '.') {
+                    if (with_dot) {
+                        break;
+                    }
+                    
+                    with_dot = true;
+                }
+
                 cwr_string_buffer_append(lexer->buffer, current);
                 cwr_lexer_skip(lexer);
                 current = cwr_lexer_current(lexer);

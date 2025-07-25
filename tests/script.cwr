@@ -7,4 +7,4 @@
 int main() {
     PRINTER "Hello, world" TRIPLE_MARK PRINTER_END
     return 0;
-}
+} 
