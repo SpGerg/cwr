@@ -1195,7 +1195,7 @@ cwr_expression cwr_parser_parse_value(cwr_parser *parser)
                 .elements = content,
                 .count = count}};
     }
-    case cwr_token_char_type:
+    case cwr_token_character_type:
         return (cwr_expression){
             .type = cwr_expression_character_type,
             .value_type = cwr_expression_type_value_create_from_type(cwr_value_character_type),

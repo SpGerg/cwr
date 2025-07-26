@@ -44,11 +44,12 @@ int main() {
     fclose(target);
 
     cwr_lexer_configuration configuration = cwr_lexer_configuration_default();
-    cwr_lexer* lexer = cwr_lexer_create("console", source, configuration);
+    cwr_lexer* lexer = cwr_lexer_create("console", source, &configuration);
     cwr_tokens_list tokens_list = cwr_lexer_tokenize(lexer);
 
     cwr_preprocessor* preprocessor = cwr_preprocessor_create(tokens_list);
     cwr_preprocessor_result pr_result = cwr_preprocessor_run(preprocessor);
+
     tokens_list = pr_result.tokens_list;
     if (pr_result.is_failed) {
         printf("Preprocessor error");

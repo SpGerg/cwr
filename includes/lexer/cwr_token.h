@@ -11,7 +11,7 @@ typedef enum cwr_token_type
     cwr_token_new_line_type,
     cwr_token_word_type,
     cwr_token_string_type,
-    cwr_token_char_type,
+    cwr_token_character_type,
     cwr_token_number_type,
     cwr_token_return_type,
     cwr_token_int_type,
@@ -22,8 +22,6 @@ typedef enum cwr_token_type
     cwr_token_if_type,
     cwr_token_for_type,
     cwr_token_directive_prefix_type,
-    cwr_token_include_type,
-    cwr_token_define_type,
     cwr_token_left_par_type,
     cwr_token_right_par_type,
     cwr_token_left_curly_type,
@@ -120,7 +118,7 @@ static inline bool cwr_token_type_is_value(cwr_token_type type)
         return true;
     case cwr_token_number_type:
         return true;
-    case cwr_token_char_type:
+    case cwr_token_character_type:
         return true;
     default:
         return false;

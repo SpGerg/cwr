@@ -55,8 +55,11 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor *preprocessor)
                 cwr_preprocessor_macros *macros = cwr_preprocessor_find_macros(preprocessor, current.value);
                 if (macros != NULL && macros->value_count > 0)
                 {
-                    cwr_preprocessor_parse_macros_expansion(preprocessor, *macros, current.location);
-                    CWR_PREPROCESSOR_FAILED_AND_BREAK(preprocessor);
+                    if (!cwr_preprocessor_parse_macros_expansion(preprocessor, *macros, current.location))
+                    {
+                        break;
+                    }
+
                     continue;
                 }
             }
@@ -68,8 +71,11 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor *preprocessor)
 
                     if (previous->type == cwr_token_string_type)
                     {
-                        cwr_preprocessor_parse_string_concatenation(preprocessor, current, previous);
-                        CWR_PREPROCESSOR_FAILED_AND_BREAK(preprocessor);
+                        if (!cwr_preprocessor_parse_string_concatenation(preprocessor, current, previous))
+                        {
+                            break;
+                        }
+
                         continue;
                     }
                 }
@@ -80,18 +86,27 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor *preprocessor)
         }
 
         cwr_preprocessor_skip(preprocessor);
+        current = cwr_preprocessor_current(preprocessor);
 
-        size_t directive_start = preprocessor->position - 1;
-        if (cwr_preprocessor_match(preprocessor, cwr_token_include_type))
+        cwr_preprocessor_skip(preprocessor);
+
+        size_t directive_start = preprocessor->position - 2;
+        if (strcmp(current.value, CWR_LEXER_INCLUDE) == 0)
         {
-            cwr_preprocessor_parse_include(preprocessor, directive_start);
-            CWR_PREPROCESSOR_FAILED_AND_BREAK(preprocessor);
+            if (!cwr_preprocessor_parse_include(preprocessor, directive_start))
+            {
+                break;
+            }
+
             continue;
         }
-        else if (cwr_preprocessor_match(preprocessor, cwr_token_define_type))
+        else if (strcmp(current.value, CWR_LEXER_DEFINE) == 0)
         {
-            cwr_preprocessor_parse_macros_definition(preprocessor, directive_start);
-            CWR_PREPROCESSOR_FAILED_AND_BREAK(preprocessor);
+            if (!cwr_preprocessor_parse_macros_definition(preprocessor, directive_start))
+            {
+                break;
+            }
+
             continue;
         }
     }
@@ -133,18 +148,6 @@ bool cwr_preprocessor_parse_include(cwr_preprocessor *preprocessor, size_t direc
     cwr_token name = cwr_preprocessor_except(preprocessor, cwr_token_word_type);
     CWR_PREPROCESSOR_FAILED_AND_RETURN(preprocessor);
 
-    cwr_preprocessor_except(preprocessor, cwr_token_dot_type);
-    CWR_PREPROCESSOR_FAILED_AND_RETURN(preprocessor);
-
-    cwr_token header = cwr_preprocessor_except(preprocessor, cwr_token_word_type);
-    CWR_PREPROCESSOR_FAILED_AND_RETURN(preprocessor);
-
-    if (strcmp(header.value, "h") != 0)
-    {
-        cwr_preprocessor_throw_error(preprocessor, cwr_preprocessor_error_except_token_type, "Except header type", header.location);
-        return false;
-    }
-
     cwr_preprocessor_except(preprocessor, cwr_token_greater_than_type);
     CWR_PREPROCESSOR_FAILED_AND_RETURN(preprocessor);
 
@@ -155,8 +158,8 @@ bool cwr_preprocessor_parse_include(cwr_preprocessor *preprocessor, size_t direc
         return false;
     }
 
-    // # include < [name].h >
-    const size_t include_statement_tokens_count = 7;
+    // # include < [library.h] >
+    const size_t include_statement_tokens_count = 5;
 
     if (cwr_preprocessor_is_included(preprocessor, name_copy))
     {
@@ -190,11 +193,13 @@ bool cwr_preprocessor_parse_include(cwr_preprocessor *preprocessor, size_t direc
     char *source = cwr_preprocessor_includer_get_from_std(name_copy);
     if (source == NULL)
     {
+        free(name_copy);
         cwr_preprocessor_throw_error(preprocessor, cwr_preprocessor_error_module_not_found_type, "Module not found", name.location);
         return false;
     }
 
-    cwr_lexer *lexer = cwr_lexer_create(preprocessor->source.executor, source, cwr_lexer_configuration_default());
+    cwr_lexer_configuration configuration = cwr_lexer_configuration_default();
+    cwr_lexer *lexer = cwr_lexer_create(preprocessor->source.executor, source, &configuration);
     if (lexer == NULL)
     {
         free(name_copy);
@@ -311,10 +316,11 @@ bool cwr_preprocessor_parse_macros_definition(cwr_preprocessor *preprocessor, si
             macro.value = tokens;
             macro.value_count = body_count;
 
-            if (body_count == 1) 
+            if (body_count == 1)
             {
                 cwr_token token = tokens[0];
-                if (token.type == cwr_token_number_type && !cwr_string_is_float(token.value)) {
+                if (token.type == cwr_token_number_type && !cwr_string_is_float(token.value))
+                {
                     macro.with_number = true;
                     macro.number = atol(token.value);
                 }

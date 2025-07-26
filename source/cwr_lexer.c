@@ -12,8 +12,9 @@ typedef struct cwr_lexer
     cwr_token *tokens;
     size_t capacity;
     cwr_string_buffer *buffer;
-    cwr_lexer_configuration configuration;
+    cwr_lexer_configuration* configuration;
     size_t position;
+    bool is_include;
     bool add_new_line;
 } cwr_lexer;
 
@@ -22,7 +23,7 @@ static cwr_location cwr_lexer_create_location(cwr_lexer *lexer)
     return cwr_location_create(lexer->executor, lexer->position);
 }
 
-cwr_lexer *cwr_lexer_create(char *executor, char *source, cwr_lexer_configuration configuration)
+cwr_lexer *cwr_lexer_create(char *executor, char *source, cwr_lexer_configuration* configuration)
 {
     cwr_lexer *lexer = malloc(sizeof(cwr_lexer));
     if (lexer == NULL)
@@ -94,11 +95,6 @@ bool cwr_lexer_add_token(cwr_lexer *lexer, cwr_token token)
         return false;
     }
 
-    if (token.type == cwr_token_define_type)
-    {
-        lexer->add_new_line = true;
-    }
-
     lexer->tokens = buffer;
     lexer->tokens[lexer->capacity++] = token;
     return true;
@@ -137,6 +133,7 @@ cwr_tokens_list cwr_lexer_tokenize(cwr_lexer *lexer)
     lexer->capacity = 0;
     lexer->position = 0;
     lexer->add_new_line = false;
+    lexer->is_include = false;
 
     while (cwr_lexer_not_ended(lexer))
     {
@@ -162,11 +159,13 @@ cwr_tokens_list cwr_lexer_tokenize(cwr_lexer *lexer)
 
             while (isdigit(current) || current == '.')
             {
-                if (current == '.') {
-                    if (with_dot) {
+                if (current == '.')
+                {
+                    if (with_dot)
+                    {
                         break;
                     }
-                    
+
                     with_dot = true;
                 }
 
@@ -209,7 +208,7 @@ cwr_tokens_list cwr_lexer_tokenize(cwr_lexer *lexer)
             cwr_lexer_skip(lexer);
 
             cwr_string_buffer_clear(lexer->buffer);
-            cwr_lexer_add_token_char(lexer, cwr_token_char_type, value);
+            cwr_lexer_add_token_char(lexer, cwr_token_character_type, value);
             continue;
         }
         else if (current == '/' && cwr_lexer_not_ended(lexer) && lexer->source[lexer->position + 1] == '/')
@@ -235,6 +234,18 @@ cwr_tokens_list cwr_lexer_tokenize(cwr_lexer *lexer)
         {
             char *buffer = cwr_string_buffer_copy_and_clear(lexer->buffer);
             buffer[strlen(buffer) - 1] = '\0';
+
+            if (lexer->capacity > 0 && lexer->tokens[lexer->capacity - 1].type == cwr_token_directive_prefix_type)
+            {
+                if (strcmp(buffer, CWR_LEXER_DEFINE) == 0)
+                {
+                    lexer->add_new_line = true;
+                }
+                else if (strcmp(buffer, CWR_LEXER_INCLUDE) == 0)
+                {
+                    lexer->is_include = true;
+                }
+            }
 
             cwr_lexer_add_token_by_str(lexer, buffer, true);
             continue;
@@ -265,17 +276,45 @@ cwr_tokens_list cwr_lexer_tokenize(cwr_lexer *lexer)
             continue;
         }
 
+        size_t count = cwr_string_buffer_length(lexer->buffer);
         char *value = cwr_string_buffer_copy_and_clear(lexer->buffer);
 
         if (current != value[0])
         {
-            // Remove the operator
-            value[strlen(value) - 1] = '\0';
+            if (!lexer->is_include)
+            {
+                // Remove the operator
+                value[strlen(value) - 1] = '\0';
+            }
+            else
+            {
+                if (operator_type == cwr_token_greater_than_type)
+                {
+                    lexer->is_include = false;
+                    value[strlen(value) - 1] = '\0';
+                }
+                else if (operator_type == cwr_token_dot_type)
+                {
+                    for (size_t i = 0; i < count; i++)
+                    {
+                        cwr_string_buffer_append(lexer->buffer, value[i]);
+                    }
+
+                    free(value);
+                    continue;
+                }
+            }
+
             cwr_lexer_add_token_by_str(lexer, value, true);
         }
         else
         {
             free(value);
+        }
+
+        if (lexer->is_include && operator_type != cwr_token_less_than_type)
+        {
+            continue;
         }
 
         cwr_lexer_add_token_char(lexer, operator_type, current);

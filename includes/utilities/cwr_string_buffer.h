@@ -13,6 +13,8 @@ char *cwr_string_buffer_copy(cwr_string_buffer *string_buffer);
 
 char *cwr_string_buffer_copy_and_clear(cwr_string_buffer *string_buffer);
 
+size_t cwr_string_buffer_length(cwr_string_buffer *string_buffer);
+
 bool cwr_string_buffer_is_empty(cwr_string_buffer *string_buffer);
 
 void cwr_string_buffer_clear(cwr_string_buffer *string_buffer);

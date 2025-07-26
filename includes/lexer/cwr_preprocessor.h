@@ -5,6 +5,9 @@
 #include <cwr_preprocessor_error.h>
 #include <cwr_token.h>
 
+#define CWR_PREPROCESSOR_ENDIF "endif"
+#define CWR_PREPROCESSOR_DEFINED_FUNC "defined"
+
 #define CWR_PREPROCESSOR_FAILED_AND_BREAK(preprocessor) \
     {                                                   \
         if (preprocessor->is_failed)                    \
@@ -45,11 +48,21 @@ cwr_preprocessor_result cwr_preprocessor_run(cwr_preprocessor *preprocessor);
 
 bool cwr_preprocessor_parse_include(cwr_preprocessor *preprocessor, size_t directive_start);
 
+bool cwr_preprocessor_parse_if(cwr_preprocessor *preprocessor, cwr_location location, size_t directive_start);
+
+bool cwr_preprocessor_parse_binary(cwr_preprocessor *preprocessor, int *result);
+
+bool cwr_preprocessor_parse_multiplicative(cwr_preprocessor *preprocessor, int *result);
+
+bool cwr_preprocessor_parse_unary(cwr_preprocessor *preprocessor, int *result);
+
+bool cwr_preprocessor_parse_value(cwr_preprocessor *preprocessor, int *result);
+
 bool cwr_preprocessor_parse_macros_definition(cwr_preprocessor *preprocessor, size_t directive_start);
 
-bool cwr_preprocessor_parse_macros_expansion(cwr_preprocessor *preprocessor, cwr_preprocessor_macros macros, cwr_location location);
-
 bool cwr_preprocessor_parse_string_concatenation(cwr_preprocessor *preprocessor, cwr_token current, cwr_token *previous);
+
+bool cwr_preprocessor_parse_macros_expansion(cwr_preprocessor *preprocessor, cwr_preprocessor_macros macros, cwr_location location);
 
 bool cwr_preprocessor_is_included(cwr_preprocessor *preprocessor, const char *name);
 
@@ -59,11 +72,15 @@ bool cwr_preprocessor_add_macros(cwr_preprocessor *preprocessor, cwr_preprocesso
 
 cwr_preprocessor_macros *cwr_preprocessor_find_macros(cwr_preprocessor *preprocessor, char *name);
 
+void cwr_preprocessor_add(cwr_preprocessor *preprocessor, cwr_token token);
+
 void cwr_preprocessor_skip(cwr_preprocessor *preprocessor);
 
 cwr_token cwr_preprocessor_except(cwr_preprocessor *preprocessor, cwr_token_type type);
 
 bool cwr_preprocessor_match(cwr_preprocessor *preprocessor, cwr_token_type type);
+
+cwr_token cwr_preprocessor_peek(cwr_preprocessor *preprocessor, size_t offset);
 
 cwr_token cwr_preprocessor_current(cwr_preprocessor *preprocessor);
 

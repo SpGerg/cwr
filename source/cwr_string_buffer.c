@@ -59,6 +59,10 @@ char *cwr_string_buffer_copy_and_clear(cwr_string_buffer *string_buffer)
     return result;
 }
 
+size_t cwr_string_buffer_length(cwr_string_buffer *string_buffer) {
+    return string_buffer->capacity;
+}
+
 bool cwr_string_buffer_is_empty(cwr_string_buffer *string_buffer)
 {
     if (string_buffer->capacity == 0)

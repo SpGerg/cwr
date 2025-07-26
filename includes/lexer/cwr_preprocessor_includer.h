@@ -3,7 +3,7 @@
 
 #include <string.h>
 
-#define CWR_STDIO "stdio"
+#define CWR_STDIO "stdio.h"
 #define CWR_STDIO_SOURCE          \
     "void printf(char *content);" \
     "void printf(char content);"  \

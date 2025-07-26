@@ -5,9 +5,12 @@
 #include <cwr_token.h>
 #include <cwr_lexer_configuration.h>
 
+#define CWR_LEXER_INCLUDE "include"
+#define CWR_LEXER_DEFINE "define"
+
 typedef struct cwr_lexer cwr_lexer;
 
-cwr_lexer *cwr_lexer_create(char *executor, char *source, cwr_lexer_configuration configuration);
+cwr_lexer *cwr_lexer_create(char *executor, char *source, cwr_lexer_configuration* configuration);
 
 char cwr_lexer_current(cwr_lexer *lexer);
 
